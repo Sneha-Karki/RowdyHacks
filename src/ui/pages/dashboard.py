@@ -7,6 +7,7 @@ from src.ui.pages.randy_page import RandyPage
 from src.ui.pages.transactions_page import TransactionsPage
 from src.ui.pages.budget import BudgetsPage
 from src.ui.pages.leaderboard import InsightsPage
+from src.ui.pages.profile import ProfilePage
 from ...services.api_client import APIClient
 
 

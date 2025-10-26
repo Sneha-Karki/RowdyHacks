@@ -110,7 +110,8 @@ class BudgetsPage(ft.Container):
                 ft.Text(
                     "See how much you've spent in each category",
                     size=16,
-                    color=ft.Colors.GREY_600
+                    color="#F8A5C2"  # Pink hex color #F8A5C2
+  # Pink hex color #F8A5C2
                 ),
                 ft.Divider(),
                 # Budget content
