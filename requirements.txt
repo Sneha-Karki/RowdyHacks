@@ -1,6 +1,5 @@
  # Python Version Required: 3.11+
 # Tested with: 3.13.3
-python>=3.11
 
 # Core Framework
 flet>=0.24.0
