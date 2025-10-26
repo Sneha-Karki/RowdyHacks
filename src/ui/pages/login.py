@@ -58,8 +58,8 @@ class LoginPage(ft.Container):
                             ft.Container(height=10),
                             ft.Image(
                                 src="logo.png",
-                                width=200,
-                                height=200,
+                                width=300,
+                                height=300,
                                 fit=ft.ImageFit.CONTAIN,
                             ),
                             ft.Text(
