@@ -1,11 +1,13 @@
 import flet as ft
+from src.ui.theme import Theme
 
 class RandyPet(ft.Container):
-    def __init__(self, happiness=100, energy=100, budget_health=100):
+    def __init__(self, happiness=100, energy=100, budget_health=100, page=None):
         super().__init__()
         self.happiness = happiness
         self.energy = energy
         self.budget_health = budget_health
+        self.page = page
         self.expressions = {
             'happy': '🤠🐍',
             'tired': '😴🐍',
@@ -34,6 +36,12 @@ class RandyPet(ft.Container):
         self.update()
         
     def build(self):
+        is_dark = self.page.is_dark_mode if self.page and hasattr(self.page, 'is_dark_mode') else False
+        # Light mode: dark text on cream, dark mode: light text on dark
+        text_color = Theme.DARK_TEXT if is_dark else Theme.NOIR
+        card_bg = Theme.DARK_SURFACE if is_dark else "#FFF8E7"  # Cream color
+        expression_bg = Theme.DARK_BG if is_dark else "#FFF4D6"  # Lighter cream for expression
+        
         self.pet_expression = ft.Text(
             value=self.get_expression(),
             size=50,
@@ -43,7 +51,7 @@ class RandyPet(ft.Container):
         self.stats_text = ft.Text(
             value=f"Happiness: {self.happiness}% | Energy: {self.energy}% | Budget Health: {self.budget_health}%",
             size=16,
-            color=ft.Colors.BLUE_GREY_400
+            color=text_color
         )
         
         return ft.Container(
@@ -53,7 +61,7 @@ class RandyPet(ft.Container):
                         content=self.pet_expression,
                         padding=20,
                         border_radius=10,
-                        bgcolor=ft.Colors.BLUE_50,
+                        bgcolor=expression_bg,
                     ),
                     self.stats_text,
                     ft.Row(
@@ -61,12 +69,14 @@ class RandyPet(ft.Container):
                             ft.ElevatedButton(
                                 "Feed Randy 🍎",
                                 on_click=self.feed,
-                                color=ft.Colors.GREEN
+                                color=ft.Colors.WHITE,
+                                bgcolor="#4CAF50" if not is_dark else Theme.WASABI  # Green button
                             ),
                             ft.ElevatedButton(
                                 "Talk to Randy 💬",
                                 on_click=lambda _: print("Chat feature coming soon!"),
-                                color=ft.Colors.BLUE
+                                color=ft.Colors.WHITE,
+                                bgcolor="#D32F2F" if not is_dark else Theme.MAPLE  # Red button
                             )
                         ],
                         alignment=ft.MainAxisAlignment.CENTER
@@ -75,7 +85,7 @@ class RandyPet(ft.Container):
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             ),
             padding=20,
-            border=ft.border.all(1, ft.Colors.BLUE_200),
+            border=ft.border.all(1, Theme.DARK_PRIMARY if is_dark else Theme.EMERALD),
             border_radius=10,
-            bgcolor=ft.Colors.WHITE,
+            bgcolor=card_bg,
         )

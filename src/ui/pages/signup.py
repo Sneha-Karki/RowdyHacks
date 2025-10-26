@@ -1,6 +1,7 @@
 """Sign up page"""
 
 import flet as ft
+from src.ui.theme import Theme
 
 
 class SignupPage(ft.Container):
@@ -10,15 +11,19 @@ class SignupPage(ft.Container):
         super().__init__()
         self.page = page
         self.auth_service = auth_service
+        
+        is_dark = page.is_dark_mode if page and hasattr(page, 'is_dark_mode') else False
+        text_color = Theme.DARK_TEXT if is_dark else Theme.NOIR
+        field_bg = Theme.DARK_SURFACE if is_dark else ft.Colors.WHITE
 
         self.email_field = ft.TextField(
             label="Email",
             width=300,
             keyboard_type=ft.KeyboardType.EMAIL,
             prefix_icon=ft.Icons.EMAIL,
-            color=ft.Colors.BLACK,       # text color inside the box
-            bgcolor=ft.Colors.WHITE,     # box background
-            border_radius=5,             # optional: rounded corners
+            color=text_color,
+            bgcolor=field_bg,
+            border_radius=5,
         )
 
         self.password_field = ft.TextField(
@@ -27,8 +32,8 @@ class SignupPage(ft.Container):
             password=True,
             can_reveal_password=True,
             prefix_icon=ft.Icons.LOCK,
-            color=ft.Colors.BLACK,
-            bgcolor=ft.Colors.WHITE,
+            color=text_color,
+            bgcolor=field_bg,
             border_radius=5,
         )
 
@@ -38,15 +43,15 @@ class SignupPage(ft.Container):
             password=True,
             can_reveal_password=True,
             prefix_icon=ft.Icons.LOCK,
-            color=ft.Colors.BLACK,
-            bgcolor=ft.Colors.WHITE,
+            color=text_color,
+            bgcolor=field_bg,
             border_radius=5,
         )
 
 
         self.error_text = ft.Text(
             value="",
-            color=ft.Colors.RED,
+            color=Theme.MAPLE,
             size=12,
             visible=False
         )
@@ -54,8 +59,13 @@ class SignupPage(ft.Container):
         # Build UI
         self.content = self.build_ui()
         self.expand = True
+        # Set background based on theme
+        self.bgcolor = Theme.DARK_SURFACE if is_dark else Theme.LIGHT_EMERALD_BG
 
     def build_ui(self):
+        is_dark = self.page.is_dark_mode if self.page and hasattr(self.page, 'is_dark_mode') else False
+        text_color = Theme.DARK_TEXT if is_dark else ft.Colors.WHITE
+        
         return ft.Stack(
             controls=[
                 # Full-page background image
@@ -96,12 +106,12 @@ class SignupPage(ft.Container):
                             "Create Account",
                             size=36,
                             weight=ft.FontWeight.BOLD,
-                            color=ft.Colors.WHITE
+                            color=text_color
                         ),
                         ft.Text(
                             "Join Big $hot today",
                             size=16,
-                            color=ft.Colors.WHITE
+                            color=text_color
                         ),
                             
 

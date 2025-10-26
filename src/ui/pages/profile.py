@@ -1,381 +1,416 @@
-"""Profile page - User settings and information"""
+"""Profile page - User profile with picture upload"""
 
 import flet as ft
-from ...services.api_client import APIClient
+import base64
+from ..theme import Theme
 
 
 class ProfilePage(ft.Container):
-    """Profile management and settings"""
+    """User profile page"""
     
-    def __init__(self, page: ft.Page, auth_service):
+    def __init__(self, page: ft.Page, auth_service, dashboard=None):
         super().__init__()
         self.page = page
         self.auth_service = auth_service
-        self.api_client = APIClient()
+        self.dashboard = dashboard
         
-        # User data
-        self.user_data = {
-            'email': self.auth_service.current_user.email if hasattr(self.auth_service.current_user, 'email') else 'demo@example.com',
-            'name': 'Demo User',
-            'joined_date': 'October 2025',
-            'preferred_currency': 'USD',
-            'notification_settings': {
-                'email_notifications': True,
-                'budget_alerts': True,
-                'spending_insights': True
-            }
-        }
+        # User data - initialize as None, will be loaded from auth
+        self.user_id = None
+        self.user_name = None
+        self.user_email = None
+        self.profile_image_url = None
+        self.profile_image_base64 = None
         
-        # Build UI
+        # Get user ID and email from auth service
+        if self.auth_service.supabase and hasattr(self.auth_service, 'current_user'):
+            if self.auth_service.current_user:
+                # Get user ID
+                if hasattr(self.auth_service.current_user, 'id'):
+                    self.user_id = self.auth_service.current_user.id
+                    self.user_email = self.auth_service.current_user.email
+                elif hasattr(self.auth_service.current_user, 'user'):
+                    self.user_id = self.auth_service.current_user.user.id
+                    self.user_email = self.auth_service.current_user.user.email
+        
+        # Build UI first
         self.content = self.build_ui()
         self.expand = True
-        self.bgcolor = ft.Colors.WHITE
-        self.padding = 0  # No padding as we'll use the Stack for layout
+        # Use theme-aware background with variety
+        is_dark = page.is_dark_mode if hasattr(page, 'is_dark_mode') else False
+        self.bgcolor = Theme.DARK_SURFACE if is_dark else Theme.LIGHT_WASABI_BG
+        self.padding = 30
+        self.border_radius = 10
         
+        # Then load profile data asynchronously
+        self.load_profile_data()
+    
+    def load_profile_data(self):
+        """Load profile data from Supabase"""
+        async def fetch_profile():
+            if self.auth_service.supabase and self.user_id:
+                try:
+                    # Try to get profile from user_profiles table
+                    response = self.auth_service.supabase.table('user_profiles')\
+                        .select('*')\
+                        .eq('user_id', self.user_id)\
+                        .execute()
+                    
+                    if response.data and len(response.data) > 0:
+                        profile = response.data[0]
+                        # Only load name and image, don't override email
+                        self.user_name = profile.get('full_name', None)
+                        self.profile_image_url = profile.get('profile_image_url', None)
+                        
+                        # Rebuild UI with loaded data
+                        self.content = self.build_ui()
+                        self.page.update()
+                except Exception as e:
+                    print(f"Profile load error: {e}")
+        
+        self.page.run_task(fetch_profile)
+    
     def build_ui(self):
         """Build the profile page UI"""
-        return ft.Stack([
-            # Background banner
-            ft.Container(
-                content=ft.Image(
-                    src="/Users/perfectsylvester/dev/RowdyHacks/assets/nav-banner.png",
-                    width=float("inf"),
-                    height=float("inf"),
-                    fit=ft.ImageFit.COVER,
+        # Get theme colors
+        is_dark = self.page.is_dark_mode if hasattr(self.page, 'is_dark_mode') else False
+        text_color = Theme.DARK_TEXT if is_dark else Theme.NOIR
+        
+        # Profile picture with upload - support both icon and image
+        self.profile_pic_content = ft.Icon(
+            ft.Icons.PERSON,
+            size=80,
+            color=ft.Colors.WHITE
+        )
+        
+        if self.profile_image_url:
+            self.profile_pic_content = ft.Image(
+                src=self.profile_image_url,
+                width=150,
+                height=150,
+                fit=ft.ImageFit.COVER,
+                border_radius=75
+            )
+        
+        self.profile_pic = ft.Container(
+            content=ft.Stack([
+                ft.Container(
+                    content=self.profile_pic_content,
+                    width=150,
+                    height=150,
+                    border_radius=75,
+                    bgcolor=ft.Colors.BLUE_400 if not self.profile_image_url else ft.Colors.TRANSPARENT,
+                    alignment=ft.alignment.center,
+                    clip_behavior=ft.ClipBehavior.HARD_EDGE
                 ),
-                expand=True,
-            ),
-            # Content overlay
-            ft.Container(
-                content=ft.Column([
-                    # Header
-                    ft.Container(
-                        content=ft.Row([
-                            ft.Icon(ft.Icons.ACCOUNT_CIRCLE, size=40, color=ft.Colors.WHITE),
-                            ft.Text("Profile Settings", size=32, weight=ft.FontWeight.BOLD, color=ft.Colors.WHITE),
-                            ft.Container(expand=True),
-                            ft.IconButton(
-                                icon=ft.Icons.EDIT,
-                                tooltip="Edit Profile",
-                                icon_color=ft.Colors.WHITE,
-                                on_click=self.handle_edit_profile
-                            )
-                        ]),
-                        padding=30
+                ft.Container(
+                    content=ft.IconButton(
+                        icon=ft.Icons.CAMERA_ALT,
+                        icon_color=ft.Colors.WHITE,
+                        bgcolor=ft.Colors.BLUE_700,
+                        on_click=self.show_upload_dialog,
+                        tooltip="Change Picture"
                     ),
-                    # Main content with white background
-                    ft.Container(
-                        content=ft.Column([
-                            # Basic Information Section
-                            self.create_section(
-                                "Basic Information",
-                                ft.Column([
-                                    self.create_info_row("Email", self.user_data['email']),
-                                    self.create_info_row("Display Name", self.user_data['name']),
-                                    self.create_info_row("Member Since", self.user_data['joined_date']),
-                                    ft.Container(
-                                        content=ft.ElevatedButton(
-                                            "Change Password",
-                                            icon=ft.Icons.LOCK_RESET,
-                                            on_click=self.handle_change_password
-                                        ),
-                                        margin=ft.margin.only(top=10)
-                                    )
-                                ])
-                            ),
-                            # Preferences Section
-                            self.create_section(
-                                "Preferences",
-                                ft.Column([
-                                    self.create_dropdown(
-                                        "Preferred Currency",
-                                        ["USD", "EUR", "GBP", "JPY", "CAD"],
-                                        self.user_data['preferred_currency']
-                                    ),
-                                    self.create_toggle(
-                                        "Email Notifications",
-                                        "Receive important updates and insights",
-                                        self.user_data['notification_settings']['email_notifications']
-                                    ),
-                                    self.create_toggle(
-                                        "Budget Alerts",
-                                        "Get notified when approaching budget limits",
-                                        self.user_data['notification_settings']['budget_alerts']
-                                    ),
-                                    self.create_toggle(
-                                        "Spending Insights",
-                                        "Weekly analysis of your spending patterns",
-                                        self.user_data['notification_settings']['spending_insights']
-                                    )
-                                ])
-                            ),
-                            # Data & Privacy Section
-                            self.create_section(
-                                "Data & Privacy",
-                                ft.Column([
-                                    ft.ElevatedButton(
-                                        "Export My Data",
-                                        icon=ft.Icons.DOWNLOAD,
-                                        on_click=self.handle_export_data
+                    alignment=ft.alignment.bottom_right,
+                    padding=ft.padding.only(right=5, bottom=5)
+                )
+            ]),
+            width=150,
+            height=150
+        )
+        
+        # Name field
+        self.name_field = ft.TextField(
+            label="Full Name",
+            value=self.user_name if self.user_name else "",
+            width=400,
+            prefix_icon=ft.Icons.PERSON_OUTLINE,
+            bgcolor=Theme.DARK_SURFACE if is_dark else ft.Colors.WHITE,
+            color=text_color,
+            border_color=Theme.DARK_PRIMARY if is_dark else Theme.LIGHT_EMERALD
+        )
+        
+        # Email field - read-only, pulled from auth
+        self.email_field = ft.TextField(
+            label="Email",
+            value=self.user_email if self.user_email else "",
+            width=400,
+            prefix_icon=ft.Icons.EMAIL_OUTLINED,
+            disabled=True,
+            read_only=True,
+            bgcolor=Theme.DARK_SURFACE if is_dark else ft.Colors.GREY_100,
+            color=text_color,
+            border_color=Theme.DARK_PRIMARY if is_dark else ft.Colors.GREY_400
+        )
+        
+        return ft.Column(
+            controls=[
+                # Header
+                ft.Row(
+                    controls=[
+                        ft.Text(
+                            "Profile",
+                            size=32,
+                            weight=ft.FontWeight.BOLD,
+                            color=text_color
+                        ),
+                    ],
+                    alignment=ft.MainAxisAlignment.START
+                ),
+                ft.Divider(color=Theme.DARK_PRIMARY if is_dark else Theme.LIGHT_EMERALD),
+                ft.Container(height=20),
+                
+                # Profile picture
+                ft.Row(
+                    controls=[self.profile_pic],
+                    alignment=ft.MainAxisAlignment.CENTER
+                ),
+                ft.Container(height=30),
+                
+                # User information
+                ft.Column(
+                    controls=[
+                        self.name_field,
+                        ft.Container(height=10),
+                        self.email_field,
+                        ft.Container(height=20),
+                        
+                        # Forgot Username & Password section
+                        ft.Container(
+                            content=ft.Column(
+                                controls=[
+                                    ft.Row(
+                                        controls=[
+                                            ft.Icon(
+                                                ft.Icons.INFO_OUTLINE, 
+                                                size=20, 
+                                                color=Theme.DARK_TEXT if is_dark else ft.Colors.GREY_600
+                                            ),
+                                            ft.Container(width=10),
+                                            ft.Text(
+                                                "Need account recovery?",
+                                                size=14,
+                                                weight=ft.FontWeight.BOLD,
+                                                color=text_color
+                                            )
+                                        ]
                                     ),
                                     ft.Container(height=10),
-                                    ft.ElevatedButton(
-                                        "Delete Account",
-                                        icon=ft.Icons.DELETE_FOREVER,
-                                        style=ft.ButtonStyle(
-                                            color=ft.Colors.WHITE,
-                                            bgcolor=ft.Colors.RED_600
-                                        ),
-                                        on_click=self.handle_delete_account
+                                    ft.Row(
+                                        controls=[
+                                            ft.TextButton(
+                                                "Forgot Username",
+                                                icon=ft.Icons.HELP_OUTLINE,
+                                                on_click=self.handle_forgot_username,
+                                                style=ft.ButtonStyle(
+                                                    color=Theme.DARK_PRIMARY if is_dark else ft.Colors.BLUE_700
+                                                )
+                                            ),
+                                            ft.Container(width=10),
+                                            ft.TextButton(
+                                                "Forgot Password",
+                                                icon=ft.Icons.LOCK_RESET,
+                                                on_click=self.handle_forgot_password,
+                                                style=ft.ButtonStyle(
+                                                    color=Theme.KHAKI if is_dark else ft.Colors.ORANGE_700
+                                                )
+                                            )
+                                        ],
+                                        alignment=ft.MainAxisAlignment.CENTER
                                     )
-                                ])
+                                ],
+                                spacing=5
+                            ),
+                            bgcolor=Theme.DARK_BG if is_dark else ft.Colors.BLUE_50,
+                            padding=15,
+                            border_radius=10,
+                            width=400,
+                            border=ft.border.all(
+                                1, 
+                                Theme.DARK_PRIMARY if is_dark else Theme.LIGHT_EMERALD
                             )
-                        ], scroll=ft.ScrollMode.AUTO),
-                        bgcolor=ft.Colors.WHITE,
-                        border_radius=ft.border_radius.only(
-                            top_left=30,
-                            top_right=30
                         ),
-                        padding=30,
-                        expand=True
-                    )
-                ]),
-                expand=True
-            )
-        ])
-    
-    def create_section(self, title: str, content: ft.Control):
-        """Create a section with title and content"""
-        return ft.Container(
-            content=ft.Column([
-                ft.Text(title, size=20, weight=ft.FontWeight.BOLD),
-                ft.Container(height=10),
-                content
-            ]),
-            border=ft.border.all(1, ft.Colors.BLACK12),
-            border_radius=10,
-            padding=20,
-            margin=ft.margin.only(bottom=20)
-        )
-    
-    def create_info_row(self, label: str, value: str):
-        """Create an information row with label and value"""
-        return ft.Container(
-            content=ft.Row([
-                ft.Text(label, size=16, color=ft.Colors.GREY_700),
-                ft.Container(expand=True),
-                ft.Text(value, size=16, weight=ft.FontWeight.W_500)
-            ]),
-            margin=ft.margin.only(bottom=10)
-        )
-    
-    def create_dropdown(self, label: str, options: list, value: str):
-        """Create a dropdown setting"""
-        return ft.Container(
-            content=ft.Column([
-                ft.Text(label, size=16, color=ft.Colors.GREY_700),
-                ft.Dropdown(
-                    value=value,
-                    options=[ft.dropdown.Option(opt) for opt in options],
-                    width=200,
-                    on_change=self.handle_setting_change
+                        
+                        ft.Container(height=30),
+                        
+                        # Action buttons
+                        ft.Row(
+                            controls=[
+                                ft.ElevatedButton(
+                                    "Save Changes",
+                                    icon=ft.Icons.SAVE,
+                                    on_click=self.handle_save_profile,
+                                    style=ft.ButtonStyle(
+                                        bgcolor=Theme.DARK_PRIMARY if is_dark else Theme.EMERALD,
+                                        color=ft.Colors.WHITE
+                                    )
+                                ),
+                                ft.TextButton(
+                                    "Cancel",
+                                    on_click=self.handle_cancel,
+                                    style=ft.ButtonStyle(
+                                        color=Theme.DARK_TEXT if is_dark else ft.Colors.GREY_700
+                                    )
+                                )
+                            ],
+                            spacing=10
+                        )
+                    ],
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    spacing=0
                 )
-            ]),
-            margin=ft.margin.only(bottom=15)
+            ],
+            spacing=10,
+            scroll=ft.ScrollMode.AUTO,
+            expand=True,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER
         )
     
-    def create_toggle(self, label: str, description: str, value: bool):
-        """Create a toggle setting with description"""
-        return ft.Container(
-            content=ft.Row([
-                ft.Column([
-                    ft.Text(label, size=16, color=ft.Colors.GREY_700),
-                    ft.Text(description, size=12, color=ft.Colors.GREY_600)
-                ], expand=True),
-                ft.Switch(value=value, on_change=self.handle_setting_change)
-            ]),
-            margin=ft.margin.only(bottom=15)
+    def show_upload_dialog(self, e):
+        """Show file upload dialog"""
+        if not hasattr(self, 'file_picker'):
+            self.file_picker = ft.FilePicker(on_result=self.on_picture_selected)
+            self.page.overlay.append(self.file_picker)
+            self.page.update()
+        
+        self.file_picker.pick_files(
+            dialog_title="Select Profile Picture",
+            allowed_extensions=["jpg", "jpeg", "png", "gif"],
+            allow_multiple=False
         )
     
-    def handle_edit_profile(self, e):
-        """Handle editing basic profile information"""
-        def save_changes(e):
-            name_value = name_field.value.strip()
-            if name_value:
-                self.user_data['name'] = name_value
+    def on_picture_selected(self, e: ft.FilePickerResultEvent):
+        """Handle picture selection from file picker"""
+        if not e.files or len(e.files) == 0:
+            return
+        
+        file_info = e.files[0]
+        file_path = file_info.path
+        
+        if file_path:
+            try:
+                # Read file and convert to base64 for display
+                with open(file_path, 'rb') as f:
+                    image_data = f.read()
+                    self.profile_image_base64 = base64.b64encode(image_data).decode()
+                
+                # For display, we'll use a data URL
+                file_ext = file_info.name.split('.')[-1].lower()
+                mime_type = f"image/{file_ext}" if file_ext in ['jpg', 'jpeg', 'png', 'gif'] else "image/jpeg"
+                self.profile_image_url = f"data:{mime_type};base64,{self.profile_image_base64}"
+                
+                self.page.snack_bar = ft.SnackBar(
+                    content=ft.Text(f"✅ Picture uploaded: {file_info.name}"),
+                    bgcolor=Theme.WASABI if self.page.is_dark_mode else Theme.EMERALD
+                )
+                self.page.snack_bar.open = True
+                
+                # Rebuild UI to show new image
+                old_content = self.content
                 self.content = self.build_ui()
+                
+                # Force update of the container
+                if hasattr(self, 'parent') and self.parent:
+                    self.parent.update()
+                else:
+                    self.update()
+                
                 self.page.update()
-            dialog.open = False
-            self.page.update()
-        
-        name_field = ft.TextField(
-            label="Display Name",
-            value=self.user_data['name'],
-            width=300
-        )
-        
-        dialog = ft.AlertDialog(
-            title=ft.Text("Edit Profile"),
-            content=ft.Column([
-                ft.Text("Email (cannot be changed)", size=12, color=ft.Colors.GREY_600),
-                ft.Text(self.user_data['email'], size=16),
-                ft.Container(height=20),
-                name_field
-            ], tight=True),
-            actions=[
-                ft.TextButton("Cancel", on_click=lambda e: setattr(dialog, 'open', False)),
-                ft.ElevatedButton("Save", on_click=save_changes)
-            ],
-            actions_alignment=ft.MainAxisAlignment.END
-        )
-        
-        self.page.dialog = dialog
-        dialog.open = True
-        self.page.update()
-    
-    def handle_change_password(self, e):
-        """Handle password change request"""
-        def validate_and_change(e):
-            current = current_password.value
-            new = new_password.value
-            confirm = confirm_password.value
-            
-            if not all([current, new, confirm]):
-                error_text.value = "Please fill in all fields"
-                self.page.update()
-                return
-            
-            if new != confirm:
-                error_text.value = "New passwords don't match"
-                self.page.update()
-                return
-            
-            if len(new) < 8:
-                error_text.value = "Password must be at least 8 characters"
-                self.page.update()
-                return
-            
-            # Here you would integrate with your auth service
-            # self.auth_service.change_password(current, new)
-            
-            dialog.open = False
-            self.page.show_snack_bar(
-                ft.SnackBar(
-                    content=ft.Text("Password changed successfully!"),
-                    bgcolor=ft.Colors.GREEN
+                
+                print(f"Profile picture uploaded: {file_info.name}")
+                print(f"Image URL set: {self.profile_image_url[:50]}...")
+            except Exception as ex:
+                self.page.snack_bar = ft.SnackBar(
+                    content=ft.Text(f"❌ Error reading file: {str(ex)}"),
+                    bgcolor=Theme.MAPLE
                 )
+                self.page.snack_bar.open = True
+                self.page.update()
+        else:
+            # Fallback: show message about web mode limitations
+            self.page.snack_bar = ft.SnackBar(
+                content=ft.Text("⚠️ File path not available in web mode. Try using an image URL instead."),
+                bgcolor=Theme.KHAKI if self.page.is_dark_mode else Theme.KHAKI
             )
+            self.page.snack_bar.open = True
             self.page.update()
-        
-        current_password = ft.TextField(
-            label="Current Password",
-            password=True,
-            can_reveal_password=True,
-            width=300
-        )
-        
-        new_password = ft.TextField(
-            label="New Password",
-            password=True,
-            can_reveal_password=True,
-            width=300
-        )
-        
-        confirm_password = ft.TextField(
-            label="Confirm New Password",
-            password=True,
-            can_reveal_password=True,
-            width=300
-        )
-        
-        error_text = ft.Text("", color=ft.Colors.RED_600)
-        
-        dialog = ft.AlertDialog(
-            title=ft.Text("Change Password"),
-            content=ft.Column([
-                error_text,
-                current_password,
-                new_password,
-                confirm_password
-            ], tight=True),
-            actions=[
-                ft.TextButton("Cancel", on_click=lambda e: setattr(dialog, 'open', False)),
-                ft.ElevatedButton("Change Password", on_click=validate_and_change)
-            ],
-            actions_alignment=ft.MainAxisAlignment.END
-        )
-        
-        self.page.dialog = dialog
-        dialog.open = True
-        self.page.update()
     
-    def handle_setting_change(self, e):
-        """Handle changes to settings"""
-        # Here you would integrate with your API to save settings
-        self.page.show_snack_bar(
-            ft.SnackBar(
-                content=ft.Text("Settings updated!"),
-                bgcolor=ft.Colors.GREEN
-            )
-        )
-        self.page.update()
-    
-    def handle_export_data(self, e):
-        """Handle data export request"""
-        # Here you would integrate with your API to export user data
-        self.page.show_snack_bar(
-            ft.SnackBar(
-                content=ft.Text("Your data export is being prepared. You'll receive an email when it's ready."),
-                bgcolor=ft.Colors.BLUE
-            )
-        )
-        self.page.update()
-    
-    def handle_delete_account(self, e):
-        """Handle account deletion request"""
-        def confirm_delete(e):
-            if confirm_field.value == "DELETE":
-                # Here you would integrate with your auth service and API
-                # self.auth_service.delete_account()
-                dialog.open = False
-                self.page.go("/")  # Redirect to login
+    def handle_save_profile(self, e):
+        """Handle save profile changes to Supabase"""
+        self.user_name = self.name_field.value
+        
+        async def save_to_db():
+            if self.auth_service.supabase and self.user_id:
+                try:
+                    # Only save name and profile image (not email - it comes from auth)
+                    data = {
+                        'user_id': self.user_id,
+                        'full_name': self.user_name,
+                        'profile_image_url': self.profile_image_url
+                    }
+                    
+                    print(f"Saving profile data: {data}")
+                    
+                    response = self.auth_service.supabase.table('user_profiles')\
+                        .upsert(data)\
+                        .execute()
+                    
+                    print(f"Profile save response: {response}")
+                    
+                    self.page.snack_bar = ft.SnackBar(
+                        content=ft.Text("✅ Profile updated successfully!"),
+                        bgcolor=Theme.WASABI if self.page.is_dark_mode else Theme.EMERALD
+                    )
+                    self.page.snack_bar.open = True
+                    self.page.update()
+                    
+                    print(f"Profile saved - Name: {self.user_name}")
+                except Exception as ex:
+                    print(f"Supabase save error: {ex}")
+                    # If table doesn't exist, save locally and inform user
+                    self.page.snack_bar = ft.SnackBar(
+                        content=ft.Text(f"✅ Profile updated locally! (Note: Database table may need setup)"),
+                        bgcolor=Theme.KHAKI if self.page.is_dark_mode else Theme.KHAKI
+                    )
+                    self.page.snack_bar.open = True
+                    self.page.update()
             else:
-                error_text.value = "Please type DELETE to confirm"
-            self.page.update()
-        
-        confirm_field = ft.TextField(
-            label="Type DELETE to confirm",
-            width=300
-        )
-        
-        error_text = ft.Text("", color=ft.Colors.RED_600)
-        
-        dialog = ft.AlertDialog(
-            title=ft.Text("Delete Account"),
-            content=ft.Column([
-                ft.Text(
-                    "⚠️ This action cannot be undone. All your data will be permanently deleted.",
-                    color=ft.Colors.RED_600,
-                    size=14
-                ),
-                ft.Container(height=20),
-                error_text,
-                confirm_field
-            ], tight=True),
-            actions=[
-                ft.TextButton("Cancel", on_click=lambda e: setattr(dialog, 'open', False)),
-                ft.ElevatedButton(
-                    "Delete Account",
-                    style=ft.ButtonStyle(
-                        color=ft.Colors.WHITE,
-                        bgcolor=ft.Colors.RED_600
-                    ),
-                    on_click=confirm_delete
+                # Fallback for when Supabase not available
+                self.page.snack_bar = ft.SnackBar(
+                    content=ft.Text("⚠️ Cannot save: User not authenticated"),
+                    bgcolor=Theme.MAPLE
                 )
-            ],
-            actions_alignment=ft.MainAxisAlignment.END
-        )
+                self.page.snack_bar.open = True
+                self.page.update()
         
-        self.page.dialog = dialog
-        dialog.open = True
+        self.page.run_task(save_to_db)
+    
+    def handle_forgot_username(self, e):
+        """Handle forgot username - placeholder"""
+        self.page.snack_bar = ft.SnackBar(
+            content=ft.Text("📧 Username recovery email sent! (Placeholder)"),
+            bgcolor=Theme.WASABI if self.page.is_dark_mode else Theme.EARTH
+        )
+        self.page.snack_bar.open = True
         self.page.update()
+    
+    def handle_forgot_password(self, e):
+        """Handle forgot password - placeholder"""
+        self.page.snack_bar = ft.SnackBar(
+            content=ft.Text("🔒 Password reset link sent! (Placeholder)"),
+            bgcolor=Theme.KHAKI if self.page.is_dark_mode else Theme.KHAKI
+        )
+        self.page.snack_bar.open = True
+        self.page.update()
+    
+    def handle_cancel(self, e):
+        """Handle cancel button - return to overview"""
+        if self.dashboard:
+            self.dashboard.switch_view(0)  # Return to overview
+        else:
+            # Fallback
+            self.page.snack_bar = ft.SnackBar(
+                content=ft.Text("Changes discarded"),
+                bgcolor=Theme.DARK_PRIMARY if self.page.is_dark_mode else Theme.EMERALD
+            )
+            self.page.snack_bar.open = True
+            self.page.update()
