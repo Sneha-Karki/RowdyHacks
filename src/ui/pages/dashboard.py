@@ -23,13 +23,27 @@ class DashboardPage(ft.Container):
         # Build UI
         self.content = self.build_ui()
         self.expand = True
-        self.bgcolor = ft.Colors.GREY_50
+        self.bgcolor = ft.Colors.TRANSPARENT  # Make container transparent to show background
         
         # Load data
         self.load_dashboard_data()
     
     def build_ui(self):
         """Build the dashboard UI"""
+        return ft.Stack([
+            # Background image
+            ft.Image(
+                src="background.png",
+                width=float("inf"),
+                height=float("inf"),
+                fit=ft.ImageFit.COVER,
+            ),
+            # Main content
+            self.build_main_content()
+        ])
+    
+    def build_main_content(self):
+        """Build main content area"""
         # Navigation rail
         nav_rail = ft.NavigationRail(
             selected_index=0,
