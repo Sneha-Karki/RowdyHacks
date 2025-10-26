@@ -199,20 +199,26 @@ class BudgetsPage(ft.Container):
             # Calculate total spending
             total_spending = sum(self.category_totals.values())
             
+            # Get theme colors
+            is_dark = self.page.is_dark_mode if hasattr(self.page, 'is_dark_mode') else False
+            text_color = Theme.DARK_TEXT if is_dark else Theme.NOIR
+            card_bg = Theme.DARK_SURFACE if is_dark else Theme.LIGHT_KHAKI_BG
+            
             # Create total spending card
             total_card = ft.Container(
                 content=ft.Column(
                     controls=[
-                        ft.Text("Total Spending", size=18, color=ft.Colors.GREY_700),
-                        ft.Text(f"${total_spending:,.2f}", size=40, weight=ft.FontWeight.BOLD, color=ft.Colors.BLACK),
-                        ft.Text("Across all categories", size=14, color=ft.Colors.GREY_500)
+                        ft.Text("Total Spending", size=18, color=Theme.DARK_TEXT if is_dark else ft.Colors.GREY_700),
+                        ft.Text(f"${total_spending:,.2f}", size=40, weight=ft.FontWeight.BOLD, color=text_color),
+                        ft.Text("Across all categories", size=14, color=Theme.DARK_TEXT if is_dark else ft.Colors.GREY_500)
                     ],
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     spacing=5
                 ),
-                bgcolor=ft.Colors.BLUE_50,
+                bgcolor=Theme.DARK_PRIMARY if is_dark else Theme.LIGHT_KHAKI_BG,
                 padding=30,
                 border_radius=15,
+                border=ft.border.all(1, Theme.DARK_PRIMARY if is_dark else Theme.KHAKI),
                 shadow=ft.BoxShadow(
                     spread_radius=0,
                     blur_radius=10,
@@ -262,6 +268,9 @@ class BudgetsPage(ft.Container):
                     )
                 )
             
+            is_dark = self.page.is_dark_mode if hasattr(self.page, 'is_dark_mode') else False
+            title_color = Theme.DARK_TEXT if is_dark else Theme.NOIR
+
             self.budget_content.controls = [
                 ft.Container(
                     content=total_card,
@@ -273,7 +282,7 @@ class BudgetsPage(ft.Container):
                         "Spending by Category",
                         size=24,
                         weight=ft.FontWeight.BOLD,
-                        color=ft.Colors.BLACK
+                        color=title_color
                     ),
                     alignment=ft.alignment.center
                 ),
@@ -322,13 +331,16 @@ class BudgetsPage(ft.Container):
                 spacing=5
             )
         
+        is_dark = self.page.is_dark_mode if hasattr(self.page, 'is_dark_mode') else False
+        card_text_color = Theme.DARK_TEXT if is_dark else Theme.NOIR
+        
         controls = [
             ft.Icon(icon, size=50, color=color),
             ft.Text(
                 category,
                 size=18,
                 weight=ft.FontWeight.BOLD,
-                color=ft.Colors.BLACK,
+                color=card_text_color,
                 text_align=ft.TextAlign.CENTER
             ),
             ft.Text(
@@ -386,13 +398,17 @@ class BudgetsPage(ft.Container):
             )
         )
         
+        is_dark = self.page.is_dark_mode if hasattr(self.page, 'is_dark_mode') else False
+        card_bg = Theme.DARK_SURFACE if is_dark else ft.Colors.WHITE
+        text_color = Theme.DARK_TEXT if is_dark else Theme.NOIR
+        
         return ft.Container(
             content=ft.Column(
                 controls=controls,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 spacing=8
             ),
-            bgcolor=ft.Colors.WHITE,
+            bgcolor=card_bg,
             padding=20,
             border_radius=100,  # Oval shape
             width=250,

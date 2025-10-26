@@ -110,60 +110,77 @@ class DashboardPage(ft.Container):
             padding=30
         )
         
-        # Top app bar
-        app_bar = ft.Container(
-            content=ft.Row(
-                controls=[
-                    ft.Text(
-                        "Big $hot",
-                        size=24,
-                        weight=ft.FontWeight.BOLD,
-                        color=text_color
+        # Top app bar with full-width background image
+        app_bar = ft.Stack(
+            controls=[
+                # Background image that fills the entire banner
+                ft.Container(
+                    content=ft.Image(
+                        src="nav-banner.png",  # Put your banner image in assets folder
+                        width=float("inf"),
+                        height=150,
+                        fit=ft.ImageFit.COVER,  # Use COVER to fill, or FIT_WIDTH to maintain aspect ratio
                     ),
-                    ft.Container(expand=True),
-                    ft.IconButton(
-                        icon=ft.Icons.UPLOAD_FILE,
-                        tooltip="Import CSV",
-                        on_click=self.handle_csv_import,
-                        icon_color=text_color
-                    ),
-                    ft.IconButton(
-                        icon=ft.Icons.NOTIFICATIONS_OUTLINED,
-                        tooltip="Notifications",
-                        icon_color=text_color
-                    ),
-                    ft.PopupMenuButton(
-                        items=[
-                            ft.PopupMenuItem(
-                                text="Profile",
-                                icon=ft.Icons.PERSON,
-                                on_click=self.show_profile_page
+                    expand=True,
+                ),
+                # Semi-transparent overlay (darker in light mode, lighter in dark mode)
+                ft.Container(
+                    bgcolor=ft.Colors.with_opacity(0.6, ft.Colors.BLACK) if not is_dark else ft.Colors.with_opacity(0.3, ft.Colors.BLACK),
+                    expand=True,
+                ),
+                # Overlay content (buttons and text)
+                ft.Container(
+                    content=ft.Row(
+                        controls=[
+                            ft.Text(
+                                "Big $hot",
+                                size=20,
+                                weight=ft.FontWeight.BOLD,
+                                color=ft.Colors.WHITE,  # White text to stand out on image
                             ),
-                            ft.PopupMenuItem(
-                                text="Settings",
-                                icon=ft.Icons.SETTINGS,
-                                on_click=self.show_settings_page
+                            ft.Container(expand=True),
+                            ft.IconButton(
+                                icon=ft.Icons.UPLOAD_FILE,
+                                tooltip="Import CSV",
+                                on_click=self.handle_csv_import,
+                                icon_color=ft.Colors.WHITE,
+                                icon_size=20,
                             ),
-                            ft.PopupMenuItem(),
-                            ft.PopupMenuItem(
-                                text="Sign Out",
-                                icon=ft.Icons.LOGOUT,
-                                on_click=self.handle_logout
+                            ft.IconButton(
+                                icon=ft.Icons.NOTIFICATIONS_OUTLINED,
+                                tooltip="Notifications",
+                                icon_color=ft.Colors.WHITE,
+                                icon_size=20,
                             ),
+                            ft.PopupMenuButton(
+                                items=[
+                                    ft.PopupMenuItem(
+                                        text="Profile",
+                                        icon=ft.Icons.PERSON,
+                                        on_click=self.show_profile_page
+                                    ),
+                                    ft.PopupMenuItem(
+                                        text="Settings",
+                                        icon=ft.Icons.SETTINGS,
+                                        on_click=self.show_settings_page
+                                    ),
+                                    ft.PopupMenuItem(),
+                                    ft.PopupMenuItem(
+                                        text="Sign Out",
+                                        icon=ft.Icons.LOGOUT,
+                                        on_click=self.handle_logout
+                                    ),
+                                ],
+                                icon_color=ft.Colors.WHITE,
+                                icon_size=20,
+                            )
                         ],
-                        icon_color=text_color
-                    )
-                ],
-                alignment=ft.MainAxisAlignment.SPACE_BETWEEN
-            ),
-            bgcolor=app_bar_bg,
-            padding=15,
-            shadow=ft.BoxShadow(
-                spread_radius=0,
-                blur_radius=4,
-                color=ft.Colors.with_opacity(0.1, ft.Colors.BLACK),
-                offset=ft.Offset(0, 2)
-            )
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+                    ),
+                    padding=10,
+                )
+            ],
+            height=50,
         )
         
         return ft.Column(
@@ -320,6 +337,13 @@ class DashboardPage(ft.Container):
                         )
                     ),
                     ft.ElevatedButton(
+                        "Manage Friends",
+                        icon=ft.Icons.PEOPLE,
+                        width=200,
+                        on_click=self.handle_friends_dialog,
+                        style=ft.ButtonStyle(bgcolor=ft.Colors.TEAL, color=ft.Colors.WHITE)
+                    ),
+                    ft.ElevatedButton(
                         "AI Insights",
                         icon=ft.Icons.AUTO_AWESOME,
                         width=200,
@@ -418,6 +442,10 @@ class DashboardPage(ft.Container):
             border=ft.border.all(1, Theme.DARK_PRIMARY if is_dark else Theme.LIGHT_EMERALD),
             border_radius=8
         )
+    
+    def handle_friends_dialog(self, e):
+        """Handle friends management dialog"""
+        pass
     
     def handle_nav_change(self, e):
         """Handle navigation rail selection change"""
