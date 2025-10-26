@@ -35,7 +35,7 @@ class DashboardPage(ft.Container):
         return ft.Stack([
             # Background image
             ft.Image(
-                src="background.png",
+                src="starry-background.png",
                 width=float("inf"),
                 height=float("inf"),
                 fit=ft.ImageFit.COVER,
@@ -276,6 +276,13 @@ class DashboardPage(ft.Container):
                         icon=ft.Icons.AUTO_AWESOME,
                         width=200,
                         style=ft.ButtonStyle(bgcolor=ft.Colors.PURPLE, color=ft.Colors.WHITE)
+                    ),
+                    ft.ElevatedButton(
+                        "Manage Friends",
+                        icon=ft.Icons.PEOPLE,
+                        width=200,
+                        on_click=self.handle_friends_dialog,
+                        style=ft.ButtonStyle(bgcolor=ft.Colors.TEAL, color=ft.Colors.WHITE)
                     ),
                 ],
                 spacing=15
@@ -633,6 +640,178 @@ class DashboardPage(ft.Container):
             self.page.dialog.open = False
             self.page.update()
     
+    def handle_friends_dialog(self, e):
+        """Show the friends management dialog"""
+        # Friend list data structure
+        self.friends_list = getattr(self, 'friends_list', [
+            {"email": "friend@example.com", "status": "Active", "shared_budgets": ["Monthly Budget"]},
+            {"email": "pending@example.com", "status": "Pending", "shared_budgets": []}
+        ])
+
+        def close_dialog(e):
+            self.page.dialog.open = False
+            self.page.update()
+
+        def add_friend(e):
+            email = email_field.value.strip()
+            if email:
+                # In a real implementation, this would send an invitation via the API
+                self.friends_list.append({
+                    "email": email,
+                    "status": "Pending",
+                    "shared_budgets": []
+                })
+                self.page.show_snack_bar(
+                    ft.SnackBar(
+                        content=ft.Text(f"✉️ Invitation sent to {email}"),
+                        bgcolor=ft.Colors.GREEN,
+                        duration=3000
+                    )
+                )
+                email_field.value = ""
+                rebuild_friends_list()
+                self.page.update()
+
+        def share_budget(email):
+            def handle_share(e):
+                # This would integrate with your budget sharing API
+                self.page.show_snack_bar(
+                    ft.SnackBar(
+                        content=ft.Text(f"📊 Budget shared with {email}"),
+                        bgcolor=ft.Colors.GREEN,
+                        duration=3000
+                    )
+                )
+                self.page.update()
+            return handle_share
+
+        def remove_friend(email):
+            def handle_remove(e):
+                self.friends_list = [f for f in self.friends_list if f["email"] != email]
+                self.page.show_snack_bar(
+                    ft.SnackBar(
+                        content=ft.Text(f"❌ Removed {email} from friends"),
+                        bgcolor=ft.Colors.RED,
+                        duration=3000
+                    )
+                )
+                rebuild_friends_list()
+                self.page.update()
+            return handle_remove
+
+        email_field = ft.TextField(
+            label="Friend's Email",
+            hint_text="Enter your friend's email",
+            width=300,
+            border_color=ft.Colors.BLUE,
+            prefix_icon=ft.Icons.EMAIL,
+            suffix_text="@example.com"
+        )
+
+        friends_column = ft.Column(spacing=5)
+
+        def rebuild_friends_list():
+            friends_column.controls = [
+                ft.Container(
+                    content=ft.Column([
+                        ft.Row([
+                            ft.Icon(
+                                ft.Icons.ACCOUNT_CIRCLE,
+                                color=ft.Colors.BLUE if friend["status"] == "Active" else ft.Colors.GREY_400
+                            ),
+                            ft.Column([
+                                ft.Text(friend["email"], weight=ft.FontWeight.BOLD),
+                                ft.Text(
+                                    friend["status"],
+                                    size=12,
+                                    color=ft.Colors.GREEN if friend["status"] == "Active" else ft.Colors.ORANGE,
+                                    italic=True
+                                )
+                            ], spacing=2),
+                            ft.Container(expand=True),
+                            ft.PopupMenuButton(
+                                items=[
+                                    ft.PopupMenuItem(
+                                        text="Share Budget",
+                                        icon=ft.Icons.SHARE,
+                                        on_click=share_budget(friend["email"])
+                                    ),
+                                    ft.PopupMenuItem(
+                                        text="View Shared",
+                                        icon=ft.Icons.FOLDER_SHARED,
+                                        disabled=not friend["shared_budgets"]
+                                    ),
+                                    ft.PopupMenuItem(),  # Divider
+                                    ft.PopupMenuItem(
+                                        text="Remove",
+                                        icon=ft.Icons.PERSON_REMOVE,
+                                        on_click=remove_friend(friend["email"])
+                                    ),
+                                ]
+                            )
+                        ]),
+                        ft.Container(
+                            content=ft.Column([
+                                ft.Text("Shared Budgets:", size=12, color=ft.Colors.GREY_600),
+                                ft.Text(
+                                    ", ".join(friend["shared_budgets"]) if friend["shared_budgets"] else "No shared budgets",
+                                    size=12,
+                                    italic=True
+                                )
+                            ]) if friend["status"] == "Active" else None,
+                            padding=ft.padding.only(left=40)
+                        )
+                    ]),
+                    bgcolor=ft.Colors.WHITE,
+                    border=ft.border.all(1, ft.Colors.GREY_300),
+                    border_radius=8,
+                    padding=10
+                )
+                for friend in self.friends_list
+            ]
+
+        rebuild_friends_list()
+
+        self.page.dialog = ft.AlertDialog(
+            title=ft.Text("Budget Collaboration", size=24, weight=ft.FontWeight.BOLD),
+            content=ft.Container(
+                content=ft.Column([
+                    ft.Text("Add a friend to collaborate", size=16, weight=ft.FontWeight.W_500),
+                    ft.Row([
+                        email_field,
+                        ft.ElevatedButton(
+                            "Send Invite",
+                            icon=ft.Icons.PERSON_ADD,
+                            on_click=add_friend,
+                            style=ft.ButtonStyle(color=ft.Colors.WHITE, bgcolor=ft.Colors.BLUE)
+                        )
+                    ], alignment=ft.MainAxisAlignment.CENTER),
+                    ft.Divider(),
+                    ft.Text("Your Budget Partners", size=16, weight=ft.FontWeight.W_500),
+                    friends_column,
+                    ft.Container(
+                        content=ft.Text(
+                            "💡 Share your budgets and financial goals with trusted friends to stay motivated and accountable!",
+                            size=12,
+                            color=ft.Colors.GREY_600,
+                            italic=True
+                        ),
+                        margin=ft.margin.only(top=20)
+                    )
+                ], scroll=ft.ScrollMode.AUTO),
+                width=400,
+                height=500,
+                padding=20
+            ),
+            actions=[
+                ft.TextButton("Close", on_click=close_dialog)
+            ],
+            actions_alignment=ft.MainAxisAlignment.END
+        )
+
+        self.page.dialog.open = True
+        self.page.update()
+
     async def handle_logout(self, e):
         """Handle logout"""
         await self.auth_service.sign_out()
