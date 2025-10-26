@@ -99,7 +99,11 @@ class BudgetBuddyApp:
 def main():
     """Application entry point"""
     app = BudgetBuddyApp()
-    ft.app(target=app.main, view=ft.AppView.WEB_BROWSER)
+    ft.app(
+        target=app.main, 
+        view=ft.AppView.WEB_BROWSER,
+        assets_dir="assets"
+    )
 
 
 if __name__ == "__main__":

@@ -40,17 +40,28 @@ class LoginPage(ft.Container):
     
     def build_ui(self):
         """Build the login UI"""
-        return ft.Column(
+        return ft.Stack(
             controls=[
-                ft.Container(
-                    content=ft.Column(
+                # Background image
+                ft.Image(
+                    src="background.png",
+                    width=float("inf"),
+                    height=float("inf"),
+                    fit=ft.ImageFit.COVER,
+                ),
+                # Content overlay
+                ft.Column(
+                    controls=[
+                        ft.Container(
+                            content=ft.Column(
                         controls=[
                             # Header
                             ft.Container(height=50),
-                            ft.Icon(
-                                name=ft.Icons.ACCOUNT_BALANCE_WALLET,
-                                size=80,
-                                color=ft.Colors.BLUE
+                            ft.Image(
+                                src="logo.png",
+                                width=80,
+                                height=80,
+                                fit=ft.ImageFit.CONTAIN,
                             ),
                             ft.Text(
                                 "Budget Buddy",
@@ -136,6 +147,8 @@ class LoginPage(ft.Container):
             alignment=ft.MainAxisAlignment.CENTER,
             expand=True
         )
+    ]
+)
     
     async def handle_login(self, e):
         """Handle login button click"""
