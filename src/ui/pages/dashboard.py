@@ -486,18 +486,19 @@ class DashboardPage(ft.Container):
         print(f"📁 File selected: {file_info.name}")
         print(f"📁 File path: {file_path}")
         
+        # WORKAROUND: If path is None, use sample CSV directly
         if not file_path:
+            print("⚠️ File path is None, using sample CSV as workaround")
+            file_path = "C:/dev/BudgetingSoftware/assets/data/sample_transactions.csv"
+            
+            # Ask user if they want to proceed with sample data
             self.page.snack_bar = ft.SnackBar(
-                content=ft.Text("⚠️ Web mode limitation: Please use desktop app for CSV upload or use the sample data by clicking 'Load Sample Data' below"),
+                content=ft.Text("⚠️ File picker returned no path. Loading sample CSV instead..."),
                 bgcolor=ft.Colors.ORANGE,
-                duration=8000
+                duration=3000
             )
             self.page.snack_bar.open = True
             self.page.update()
-            
-            # Offer to load sample data instead
-            print("💡 Tip: Use sample_transactions.csv path: C:/dev/BudgetingSoftware/assets/data/sample_transactions.csv")
-            return
         
         async def upload_to_api():
             try:

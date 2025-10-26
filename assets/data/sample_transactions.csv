@@ -1,0 +1,31 @@
+date,description,amount,type,category
+2025-10-01,Monthly Salary,4500.00,income,Salary
+2025-10-02,Rent Payment,-1200.00,expense,Housing
+2025-10-03,Grocery Store - Walmart,-156.32,expense,Food & Dining
+2025-10-05,Electric Bill,-89.45,expense,Utilities
+2025-10-05,Water Bill,-45.20,expense,Utilities
+2025-10-07,Gas Station,-52.00,expense,Transportation
+2025-10-08,Starbucks Coffee,-8.75,expense,Food & Dining
+2025-10-09,Target - Household Items,-234.56,expense,Shopping
+2025-10-10,Netflix Subscription,-15.99,expense,Entertainment
+2025-10-10,Spotify Premium,-10.99,expense,Entertainment
+2025-10-12,Chipotle Lunch,-12.50,expense,Food & Dining
+2025-10-13,Gym Membership,-45.00,expense,Health & Fitness
+2025-10-14,Freelance Project Payment,850.00,income,Freelance
+2025-10-15,Car Insurance,-125.00,expense,Transportation
+2025-10-16,Grocery Store - Whole Foods,-98.45,expense,Food & Dining
+2025-10-17,Amazon - Books,-45.99,expense,Shopping
+2025-10-18,Restaurant Dinner,-67.80,expense,Food & Dining
+2025-10-19,Gas Station,-48.00,expense,Transportation
+2025-10-20,Phone Bill,-65.00,expense,Utilities
+2025-10-21,Movie Tickets,-28.00,expense,Entertainment
+2025-10-22,Grocery Store - Trader Joe's,-112.34,expense,Food & Dining
+2025-10-23,Coffee Shop,-6.50,expense,Food & Dining
+2025-10-24,Internet Bill,-79.99,expense,Utilities
+2025-10-25,Side Hustle Income,320.00,income,Other Income
+2025-10-25,Pharmacy - CVS,-34.87,expense,Healthcare
+2025-10-26,Uber Ride,-18.50,expense,Transportation
+2025-10-27,Lunch Meeting,-25.00,expense,Food & Dining
+2025-10-28,Clothing Store - H&M,-89.99,expense,Shopping
+2025-10-29,Gas Station,-51.25,expense,Transportation
+2025-10-30,Grocery Store - Safeway,-145.67,expense,Food & Dining
