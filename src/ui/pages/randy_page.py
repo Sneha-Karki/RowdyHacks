@@ -23,9 +23,9 @@ class RandyPage(ft.Container):
             border_radius=10,
             expand=True,
             on_submit=self.send_message,
-            bgcolor=Theme.DARK_BG if is_dark else ft.Colors.WHITE,
+            bgcolor=Theme.DARK_BG if is_dark else "#FFFBF0",  # Lighter cream for input
             color=Theme.DARK_TEXT if is_dark else Theme.NOIR,
-            border_color=Theme.DARK_PRIMARY if is_dark else Theme.LIGHT_EMERALD
+            border_color=Theme.DARK_PRIMARY if is_dark else Theme.EMERALD
         )
         
         self.chat_view = ft.ListView(
@@ -40,13 +40,15 @@ class RandyPage(ft.Container):
         self.expand = True
         # Use theme-aware background
         is_dark = page.is_dark_mode if page and hasattr(page, 'is_dark_mode') else False
-        self.bgcolor = Theme.DARK_SURFACE if is_dark else Theme.LIGHT_MAPLE_BG if hasattr(Theme, 'LIGHT_MAPLE_BG') else Theme.LIGHT_WASABI_BG
+        self.bgcolor = Theme.DARK_SURFACE if is_dark else "#FAF6E9"  # Light cream background
     
     def build_ui(self):
         """Build Randy's page UI"""
         is_dark = self.page.is_dark_mode if self.page and hasattr(self.page, 'is_dark_mode') else False
+        # Light mode: cream background with dark text
+        # Dark mode: dark background with light text
         text_color = Theme.DARK_TEXT if is_dark else Theme.NOIR
-        card_bg = Theme.DARK_SURFACE if is_dark else ft.Colors.WHITE
+        card_bg = Theme.DARK_SURFACE if is_dark else "#FFF8E7"  # Cream color
         accent_color = Theme.DARK_PRIMARY if is_dark else Theme.EMERALD
         
         # Title
@@ -177,11 +179,13 @@ class RandyPage(ft.Container):
         is_dark = self.page.is_dark_mode if self.page and hasattr(self.page, 'is_dark_mode') else False
         
         if is_user:
-            bg_color = Theme.DARK_PRIMARY if is_dark else Theme.EMERALD
+            # User messages: Green in light mode, Wasabi in dark mode
+            bg_color = Theme.DARK_PRIMARY if is_dark else "#4CAF50"  # Green
             text_color = ft.Colors.WHITE
         else:
-            bg_color = Theme.DARK_BG if is_dark else ft.Colors.GREY_200
-            text_color = Theme.DARK_TEXT if is_dark else ft.Colors.BLACK
+            # Randy messages: Light cream in light mode, dark in dark mode
+            bg_color = Theme.DARK_BG if is_dark else "#FFF4D6"  # Light cream
+            text_color = Theme.DARK_TEXT if is_dark else Theme.NOIR  # Dark text in light mode
         
         return ft.Container(
             content=ft.Text(text, color=text_color),

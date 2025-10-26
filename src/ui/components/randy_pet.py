@@ -37,9 +37,10 @@ class RandyPet(ft.Container):
         
     def build(self):
         is_dark = self.page.is_dark_mode if self.page and hasattr(self.page, 'is_dark_mode') else False
+        # Light mode: dark text on cream, dark mode: light text on dark
         text_color = Theme.DARK_TEXT if is_dark else Theme.NOIR
-        card_bg = Theme.DARK_SURFACE if is_dark else Theme.LIGHT_WASABI_BG
-        accent_color = Theme.DARK_PRIMARY if is_dark else Theme.EMERALD
+        card_bg = Theme.DARK_SURFACE if is_dark else "#FFF8E7"  # Cream color
+        expression_bg = Theme.DARK_BG if is_dark else "#FFF4D6"  # Lighter cream for expression
         
         self.pet_expression = ft.Text(
             value=self.get_expression(),
@@ -60,7 +61,7 @@ class RandyPet(ft.Container):
                         content=self.pet_expression,
                         padding=20,
                         border_radius=10,
-                        bgcolor=Theme.DARK_BG if is_dark else Theme.LIGHT_KHAKI_BG,
+                        bgcolor=expression_bg,
                     ),
                     self.stats_text,
                     ft.Row(
@@ -69,13 +70,13 @@ class RandyPet(ft.Container):
                                 "Feed Randy 🍎",
                                 on_click=self.feed,
                                 color=ft.Colors.WHITE,
-                                bgcolor=Theme.WASABI if is_dark else Theme.EMERALD
+                                bgcolor="#4CAF50" if not is_dark else Theme.WASABI  # Green button
                             ),
                             ft.ElevatedButton(
                                 "Talk to Randy 💬",
                                 on_click=lambda _: print("Chat feature coming soon!"),
                                 color=ft.Colors.WHITE,
-                                bgcolor=Theme.DARK_PRIMARY if is_dark else Theme.EARTH
+                                bgcolor="#D32F2F" if not is_dark else Theme.MAPLE  # Red button
                             )
                         ],
                         alignment=ft.MainAxisAlignment.CENTER
@@ -84,7 +85,7 @@ class RandyPet(ft.Container):
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             ),
             padding=20,
-            border=ft.border.all(1, Theme.DARK_PRIMARY if is_dark else Theme.LIGHT_EMERALD),
+            border=ft.border.all(1, Theme.DARK_PRIMARY if is_dark else Theme.EMERALD),
             border_radius=10,
             bgcolor=card_bg,
         )
