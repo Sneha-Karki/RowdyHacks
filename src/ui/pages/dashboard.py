@@ -4,6 +4,9 @@ import flet as ft
 from datetime import datetime
 from src.ui.components.randy_pet import RandyPet
 from src.ui.pages.randy_page import RandyPage
+from src.ui.pages.transactions_page import TransactionsPage
+from src.ui.pages.budget import BudgetsPage
+from src.ui.pages.leaderboard import InsightsPage
 from ...services.api_client import APIClient
 
 
@@ -64,19 +67,14 @@ class DashboardPage(ft.Container):
                     label="Randy"
                 ),
                 ft.NavigationRailDestination(
-                    icon=ft.Icons.RECEIPT_LONG_OUTLINED,
-                    selected_icon=ft.Icons.RECEIPT_LONG,
-                    label="Transactions"
-                ),
-                ft.NavigationRailDestination(
                     icon=ft.Icons.CATEGORY_OUTLINED,
                     selected_icon=ft.Icons.CATEGORY,
                     label="Budgets"
                 ),
                 ft.NavigationRailDestination(
-                    icon=ft.Icons.INSIGHTS_OUTLINED,
-                    selected_icon=ft.Icons.INSIGHTS,
-                    label="Insights"
+                    icon=ft.Icons.LEADERBOARD_OUTLINED,
+                    selected_icon=ft.Icons.LEADERBOARD,
+                    label="Leaderboard"
                 ),
             ],
             on_change=self.handle_nav_change,
@@ -231,7 +229,7 @@ class DashboardPage(ft.Container):
             ft.Container(height=10),
             ft.TextButton(
                 "View All Transactions →",
-                on_click=lambda _: self.switch_view(1)
+                on_click=self.show_transactions_page
             )
         ])
         
@@ -368,9 +366,8 @@ class DashboardPage(ft.Container):
         views = {
             0: "overview",
             1: "randy",
-            2: "transactions",
-            3: "budgets",
-            4: "insights"
+            2: "budgets",
+            3: "insights"
         }
         
         self.current_view = views.get(index, "overview")
@@ -379,6 +376,10 @@ class DashboardPage(ft.Container):
             self.content_area.content = self.build_overview()
         elif self.current_view == "randy":
             self.content_area.content = RandyPage(self.page, self.auth_service)
+        elif self.current_view == "budgets":
+            self.content_area.content = BudgetsPage(self.page, self.auth_service)
+        elif self.current_view == "insights":
+            self.content_area.content = InsightsPage(self.page, self.auth_service)
         else:
             self.content_area.content = ft.Container(
                 content=ft.Column(
@@ -402,6 +403,11 @@ class DashboardPage(ft.Container):
                 expand=True
             )
         
+        self.page.update()
+    
+    def show_transactions_page(self, e):
+        """Show the full transactions page"""
+        self.content_area.content = TransactionsPage(self.page, self.auth_service)
         self.page.update()
     
     def handle_load_sample(self, e):
