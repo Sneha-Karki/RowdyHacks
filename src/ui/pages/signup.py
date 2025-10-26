@@ -61,13 +61,14 @@ class SignupPage(ft.Container):
                 # Full-page background image
                 ft.Container(ft.Image(
                         src="signupbg.png",
+                        width=float("inf"),
+                        height=float("inf"),
                         fit=ft.ImageFit.COVER,   # fills the container fully, cropping if needed
                         expand=True
                     ),
                     #alignment=ft.alignment.center,  # centers the image
                 )
 ,
-
 
                 # Foreground content container with right shift
                 ft.Container(  # move form slightly to the right
@@ -131,13 +132,17 @@ class SignupPage(ft.Container):
                             # Login link
                             ft.Row(
                                 controls=[
-                                    ft.Text("Already have an account?"),
+                                    ft.Text("Already have an account?", 
+                                            color=ft.Colors.WHITE
+                                            ),
+                                    
                                     ft.TextButton(
                                         "Sign In",
                                         on_click=lambda _: self.page.go("/"),
                                         style=ft.ButtonStyle(
                                             text_style=ft.TextStyle(
-                                                size=20,
+                                                size=15,
+                                                color=ft.Colors.WHITE,
                                                 weight=ft.FontWeight.BOLD
                                             )
                                         )
