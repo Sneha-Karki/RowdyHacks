@@ -1,4 +1,4 @@
-# Budget Buddy 🐍
+# Big $hot 🐍
 
 A personal finance manager with Randy, your friendly budget-tracking snake companion! Built for RowdyHacks.
 
