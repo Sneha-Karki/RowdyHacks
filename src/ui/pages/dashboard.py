@@ -131,7 +131,16 @@ class DashboardPage(ft.Container):
                 blur_radius=4,
                 color=ft.Colors.with_opacity(0.1, ft.Colors.BLACK),
                 offset=ft.Offset(0, 2)
-            )
+            ),
+            # Add background image using decoration
+            decoration=ft.BoxDecoration(
+                image=ft.DecorationImage(
+                    src="nav-banner.png",     # path to your image
+                    fit=ft.ImageFit.COVER,          # or CONTAIN, FILL, etc.
+                    opacity=0.9                     # optional transparency
+                ),
+                border_radius=ft.border_radius.all(0)  # optional rounding
+            ),
         )
         
         return ft.Column(
@@ -254,7 +263,6 @@ class DashboardPage(ft.Container):
                         "Add Transaction",
                         icon=ft.Icons.ADD,
                         width=200,
-                        on_click=self.show_transactions_page,
                         style=ft.ButtonStyle(bgcolor=ft.Colors.BLUE, color=ft.Colors.WHITE)
                     ),
                     ft.ElevatedButton(
@@ -416,7 +424,7 @@ class DashboardPage(ft.Container):
     
     def show_transactions_page(self, e):
         """Show the full transactions page"""
-        self.content_area.content = TransactionsPage(self.page, self.auth_service, self)
+        self.content_area.content = TransactionsPage(self.page, self.auth_service)
         self.page.update()
     
     def handle_load_sample(self, e):
