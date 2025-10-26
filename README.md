@@ -13,6 +13,12 @@ A personal finance manager with Randy, your friendly budget-tracking snake compa
 
 
 ### SneakPeak
+#### Login
+<img width="2551" height="1333" alt="image" src="https://github.com/user-attachments/assets/2fa62ca4-4194-4670-b586-34ebdfe7d307" />
+
+#### Sign Up
+<img width="2505" height="1298" alt="image" src="https://github.com/user-attachments/assets/afebf69e-7395-48bb-934b-585d6e1663c7" />
+
 #### Dashboard
 <img width="2553" height="1331" alt="image" src="https://github.com/user-attachments/assets/2a82c541-ab4c-4409-b62d-037978b6c35c" />
 
