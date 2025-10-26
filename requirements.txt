@@ -1,9 +1,15 @@
-# Python Version Required: 3.11+
+ # Python Version Required: 3.11+
 # Tested with: 3.13.3
 python>=3.11
 
 # Core Framework
 flet>=0.24.0
+
+# Backend API
+fastapi>=0.115.0
+uvicorn>=0.30.0
+python-multipart>=0.0.9
+requests>=2.31.0
 
 # Database & Authentication
 supabase>=2.7.0
@@ -22,8 +28,8 @@ python-dateutil>=2.8.0
 # Environment Management
 python-dotenv>=1.0.0
 
-# Optional: Plaid Bank Integration
-# plaid-python>=24.0.0
+# Plaid Bank Integration
+plaid-python>=24.0.0
 
 # Charts & Visualization (Flet has built-in charts, but these are alternatives)
 plotly>=5.18.0

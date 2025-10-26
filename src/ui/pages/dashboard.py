@@ -2,6 +2,7 @@
 
 import flet as ft
 from datetime import datetime
+from src.ui.components.randy_pet import RandyPet
 
 
 class DashboardPage(ft.Container):
@@ -123,6 +124,16 @@ class DashboardPage(ft.Container):
     
     def build_overview(self):
         """Build overview dashboard"""
+        # Randy the Snake Pet
+        randy_container = ft.Container(
+            content=RandyPet(),
+            bgcolor=ft.Colors.WHITE,
+            padding=20,
+            border_radius=10,
+            shadow=ft.BoxShadow(blur_radius=10, color=ft.Colors.with_opacity(0.1, ft.Colors.BLACK)),
+            margin=ft.margin.only(bottom=20)
+        )
+
         # Summary cards
         balance_card = self.create_stat_card(
             "Total Balance",
@@ -212,6 +223,8 @@ class DashboardPage(ft.Container):
         
         return ft.Column(
             controls=[
+                # Randy's container
+                randy_container,
                 # Summary cards row
                 ft.Row(
                     controls=[balance_card, income_card, expenses_card, savings_card],
