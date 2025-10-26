@@ -1,2 +1,0 @@
-# RowdyHacks
-RowdyHacks Project 
