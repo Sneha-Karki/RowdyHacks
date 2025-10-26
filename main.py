@@ -101,7 +101,7 @@ def main():
     app = BudgetBuddyApp()
     ft.app(
         target=app.main, 
-        view=ft.AppView.WEB_BROWSER,
+        view=ft.AppView.FLET_APP,  # Desktop mode - file picker works properly
         assets_dir="assets"
     )
 

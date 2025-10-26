@@ -13,7 +13,7 @@ class CSVParser:
         """
         Parse a generic CSV file with transactions
         
-        Expected columns: Date, Description, Amount, Category (optional)
+        Expected columns: date, description, amount, type, category, user_id (optional)
         
         Returns:
             List of transaction dictionaries
@@ -23,10 +23,12 @@ class CSVParser:
             
             # Try to standardize column names
             column_mapping = {
-                'date': ['date', 'transaction date', 'posted date', 'Date'],
-                'description': ['description', 'merchant', 'payee', 'Description'],
-                'amount': ['amount', 'debit', 'credit', 'Amount'],
-                'category': ['category', 'type', 'Category']
+                'date': ['date', 'transaction date', 'posted date', 'transaction_date'],
+                'description': ['description', 'merchant', 'payee', 'name'],
+                'amount': ['amount', 'debit', 'credit'],
+                'type': ['type', 'transaction_type', 'transaction type'],
+                'category': ['category', 'Category'],
+                'user_id': ['user_id', 'user', 'User ID']
             }
             
             # Find matching columns
@@ -38,16 +40,27 @@ class CSVParser:
                         break
             
             if 'date' not in standardized or 'amount' not in standardized:
-                raise ValueError("CSV must contain Date and Amount columns")
+                raise ValueError("CSV must contain 'date' and 'amount' columns")
             
             # Parse transactions
             transactions = []
             for _, row in df.iterrows():
+                amount = float(row[standardized['amount']])
+                
+                # Determine transaction type
+                if 'type' in standardized:
+                    txn_type = str(row[standardized['type']]).lower()
+                else:
+                    # Infer from amount
+                    txn_type = 'income' if amount > 0 else 'expense'
+                
                 transaction = {
                     'date': str(row[standardized['date']]),
                     'description': str(row[standardized.get('description', '')]) if 'description' in standardized else 'Unknown',
-                    'amount': float(row[standardized['amount']]),
-                    'category': str(row[standardized.get('category', '')]) if 'category' in standardized else 'Uncategorized'
+                    'amount': abs(amount),  # Always positive
+                    'transaction_type': txn_type,
+                    'category': str(row[standardized.get('category', '')]) if 'category' in standardized else 'Uncategorized',
+                    'user_id': str(row[standardized.get('user_id', '')]) if 'user_id' in standardized else None
                 }
                 transactions.append(transaction)
             

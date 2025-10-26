@@ -1,7 +1,8 @@
-"""Dashboard page - main app interface"""
+﻿"""Dashboard page - main app interface"""
 
 import flet as ft
 from datetime import datetime
+from ...services.api_client import APIClient
 
 
 class DashboardPage(ft.Container):
@@ -11,12 +12,21 @@ class DashboardPage(ft.Container):
         super().__init__()
         self.page = page
         self.auth_service = auth_service
+        self.api_client = APIClient()
         self.current_view = "overview"
+        
+        # Data storage
+        self.balance = 0.0
+        self.monthly_summary = {}
+        self.transactions = []
         
         # Build UI
         self.content = self.build_ui()
         self.expand = True
         self.bgcolor = ft.Colors.GREY_50
+        
+        # Load data
+        self.load_dashboard_data()
     
     def build_ui(self):
         """Build the dashboard UI"""
@@ -83,7 +93,7 @@ class DashboardPage(ft.Container):
                         items=[
                             ft.PopupMenuItem(text="Profile", icon=ft.Icons.PERSON),
                             ft.PopupMenuItem(text="Settings", icon=ft.Icons.SETTINGS),
-                            ft.PopupMenuItem(),  # Divider
+                            ft.PopupMenuItem(),
                             ft.PopupMenuItem(
                                 text="Sign Out",
                                 icon=ft.Icons.LOGOUT,
@@ -121,53 +131,91 @@ class DashboardPage(ft.Container):
             expand=True
         )
     
+    def load_dashboard_data(self):
+        """Load dashboard data from API"""
+        async def load_data():
+            user_id = 'demo'
+            if self.auth_service.supabase and hasattr(self.auth_service, 'current_user'):
+                if hasattr(self.auth_service.current_user, 'id'):
+                    user_id = self.auth_service.current_user.id
+                else:
+                    user_id = str(self.auth_service.current_user)
+            
+            summary_data = await self.api_client.get_summary(user_id)
+            self.balance = summary_data['balance']
+            self.monthly_summary = summary_data['summary']
+            self.transactions = await self.api_client.get_transactions(user_id, 10)
+            self.update_overview_data()
+        
+        self.page.run_task(load_data)
+    
+    def update_overview_data(self):
+        """Update overview UI with loaded data"""
+        if hasattr(self, 'content_area') and self.current_view == "overview":
+            self.content_area.content = self.build_overview()
+            self.page.update()
+    
     def build_overview(self):
         """Build overview dashboard"""
-        # Summary cards
         balance_card = self.create_stat_card(
             "Total Balance",
-            "$5,432.00",
+            f"${self.balance:,.2f}",
             ft.Icons.ACCOUNT_BALANCE_WALLET,
             ft.Colors.BLUE
         )
         
+        income = self.monthly_summary.get('income', 0)
         income_card = self.create_stat_card(
             "Monthly Income",
-            "$3,200.00",
+            f"${income:,.2f}",
             ft.Icons.TRENDING_UP,
             ft.Colors.GREEN
         )
         
+        expenses = self.monthly_summary.get('expenses', 0)
         expenses_card = self.create_stat_card(
             "Monthly Expenses",
-            "$2,150.00",
+            f"${expenses:,.2f}",
             ft.Icons.TRENDING_DOWN,
             ft.Colors.RED
         )
         
+        savings_rate = self.monthly_summary.get('savings_rate', 0)
         savings_card = self.create_stat_card(
             "Savings Rate",
-            "32.8%",
+            f"{savings_rate:.1f}%",
             ft.Icons.SAVINGS,
             ft.Colors.PURPLE
         )
         
-        # Recent transactions
+        transaction_controls = [
+            ft.Text("Recent Transactions", size=20, weight=ft.FontWeight.BOLD),
+            ft.Divider(),
+        ]
+        
+        for txn in self.transactions[:5]:
+            amount_str = f"+${txn['amount']:,.2f}" if txn['transaction_type'] == 'income' else f"-${txn['amount']:,.2f}"
+            txn_date = datetime.fromisoformat(txn['transaction_date']) if isinstance(txn['transaction_date'], str) else txn['transaction_date']
+            transaction_controls.append(
+                self.create_transaction_item(
+                    txn['description'],
+                    amount_str,
+                    txn['category'],
+                    txn_date
+                )
+            )
+        
+        transaction_controls.extend([
+            ft.Container(height=10),
+            ft.TextButton(
+                "View All Transactions →",
+                on_click=lambda _: self.switch_view(1)
+            )
+        ])
+        
         transactions_list = ft.Container(
             content=ft.Column(
-                controls=[
-                    ft.Text("Recent Transactions", size=20, weight=ft.FontWeight.BOLD),
-                    ft.Divider(),
-                    self.create_transaction_item("Grocery Store", "-$125.50", "Food", datetime.now()),
-                    self.create_transaction_item("Salary", "+$3,200.00", "Income", datetime.now()),
-                    self.create_transaction_item("Electric Bill", "-$89.00", "Utilities", datetime.now()),
-                    self.create_transaction_item("Coffee Shop", "-$15.75", "Food", datetime.now()),
-                    ft.Container(height=10),
-                    ft.TextButton(
-                        "View All Transactions →",
-                        on_click=lambda _: self.switch_view(1)
-                    )
-                ],
+                controls=transaction_controls,
                 spacing=10
             ),
             bgcolor=ft.Colors.WHITE,
@@ -176,7 +224,6 @@ class DashboardPage(ft.Container):
             shadow=ft.BoxShadow(blur_radius=10, color=ft.Colors.with_opacity(0.1, ft.Colors.BLACK))
         )
         
-        # Quick actions
         quick_actions = ft.Container(
             content=ft.Column(
                 controls=[
@@ -196,6 +243,13 @@ class DashboardPage(ft.Container):
                         style=ft.ButtonStyle(bgcolor=ft.Colors.GREEN, color=ft.Colors.WHITE)
                     ),
                     ft.ElevatedButton(
+                        "Connect Bank (Plaid)",
+                        icon=ft.Icons.ACCOUNT_BALANCE,
+                        width=200,
+                        on_click=self.handle_connect_bank,
+                        style=ft.ButtonStyle(bgcolor=ft.Colors.ORANGE, color=ft.Colors.WHITE)
+                    ),
+                    ft.ElevatedButton(
                         "AI Insights",
                         icon=ft.Icons.AUTO_AWESOME,
                         width=200,
@@ -212,14 +266,12 @@ class DashboardPage(ft.Container):
         
         return ft.Column(
             controls=[
-                # Summary cards row
                 ft.Row(
                     controls=[balance_card, income_card, expenses_card, savings_card],
                     spacing=20,
                     wrap=True
                 ),
                 ft.Container(height=20),
-                # Content row
                 ft.Row(
                     controls=[
                         ft.Container(content=transactions_list, expand=2),
@@ -303,7 +355,6 @@ class DashboardPage(ft.Container):
         if self.current_view == "overview":
             self.content_area.content = self.build_overview()
         else:
-            # Placeholder for other views
             self.content_area.content = ft.Container(
                 content=ft.Column(
                     controls=[
@@ -328,14 +379,233 @@ class DashboardPage(ft.Container):
         
         self.page.update()
     
+    def handle_load_sample(self, e):
+        """Load sample transactions from CSV via API"""
+        async def load_sample():
+            try:
+                self.page.snack_bar = ft.SnackBar(
+                    content=ft.Text("Loading sample data..."),
+                    bgcolor=ft.Colors.BLUE
+                )
+                self.page.snack_bar.open = True
+                self.page.update()
+                
+                user_id = 'demo'
+                if self.auth_service.supabase and hasattr(self.auth_service, 'current_user'):
+                    if hasattr(self.auth_service.current_user, 'id'):
+                        user_id = self.auth_service.current_user.id
+                
+                # Use the sample CSV file
+                sample_path = "C:/dev/BudgetingSoftware/assets/data/sample_transactions.csv"
+                print(f"🔵 Loading sample data from {sample_path}")
+                
+                result = await self.api_client.upload_csv(sample_path, user_id)
+                
+                if result.get('success'):
+                    imported = result.get('imported', 0)
+                    print(f"✅ Loaded {imported} sample transactions")
+                    
+                    self.load_dashboard_data()
+                    
+                    self.page.snack_bar = ft.SnackBar(
+                        content=ft.Text(f"✅ Loaded {imported} sample transactions!"),
+                        bgcolor=ft.Colors.GREEN,
+                        duration=3000
+                    )
+                    self.page.snack_bar.open = True
+                    self.page.update()
+                else:
+                    error = result.get('error', 'Unknown error')
+                    print(f"❌ Error: {error}")
+                    self.page.snack_bar = ft.SnackBar(
+                        content=ft.Text(f"❌ Error: {error[:100]}"),
+                        bgcolor=ft.Colors.RED,
+                        duration=5000
+                    )
+                    self.page.snack_bar.open = True
+                    self.page.update()
+            except Exception as ex:
+                print(f"❌ Exception: {ex}")
+                self.page.snack_bar = ft.SnackBar(
+                    content=ft.Text(f"❌ Failed: {str(ex)[:100]}"),
+                    bgcolor=ft.Colors.RED,
+                    duration=5000
+                )
+                self.page.snack_bar.open = True
+                self.page.update()
+        
+        self.page.run_task(load_sample)
+    
     def handle_csv_import(self, e):
-        """Handle CSV import"""
+        """Handle CSV import via FastAPI"""
+        if not hasattr(self, 'file_picker'):
+            self.file_picker = ft.FilePicker(on_result=self.on_file_picked)
+            self.page.overlay.append(self.file_picker)
+            self.page.update()
+        
+        self.file_picker.pick_files(
+            dialog_title="Select CSV File",
+            allowed_extensions=["csv"],
+            allow_multiple=False
+        )
+    
+    def on_file_picked(self, e: ft.FilePickerResultEvent):
+        """Handle file selection and upload to API"""
+        if not e.files or len(e.files) == 0:
+            print("❌ No file selected")
+            return
+        
+        file_info = e.files[0]
+        file_path = file_info.path
+        
+        print(f"📁 File selected: {file_info.name}")
+        print(f"📁 File path: {file_path}")
+        
+        if not file_path:
+            self.page.snack_bar = ft.SnackBar(
+                content=ft.Text("⚠️ Web mode limitation: Please use desktop app for CSV upload or use the sample data by clicking 'Load Sample Data' below"),
+                bgcolor=ft.Colors.ORANGE,
+                duration=8000
+            )
+            self.page.snack_bar.open = True
+            self.page.update()
+            
+            # Offer to load sample data instead
+            print("💡 Tip: Use sample_transactions.csv path: C:/dev/BudgetingSoftware/assets/data/sample_transactions.csv")
+            return
+        
+        async def upload_to_api():
+            try:
+                self.page.snack_bar = ft.SnackBar(
+                    content=ft.Text(f"Uploading {file_info.name} to API..."),
+                    bgcolor=ft.Colors.BLUE
+                )
+                self.page.snack_bar.open = True
+                self.page.update()
+                
+                user_id = 'demo'
+                if self.auth_service.supabase and hasattr(self.auth_service, 'current_user'):
+                    if hasattr(self.auth_service.current_user, 'id'):
+                        user_id = self.auth_service.current_user.id
+                
+                print(f"🔵 Uploading CSV to API for user_id={user_id}")
+                result = await self.api_client.upload_csv(file_path, user_id)
+                
+                if result.get('success'):
+                    imported = result.get('imported', 0)
+                    skipped = result.get('skipped', 0)
+                    
+                    print(f"✅ API imported {imported} transactions")
+                    
+                    self.load_dashboard_data()
+                    
+                    message = f"✅ Imported {imported} transactions!"
+                    if skipped > 0:
+                        message += f" ({skipped} skipped)"
+                    
+                    self.page.snack_bar = ft.SnackBar(
+                        content=ft.Text(message),
+                        bgcolor=ft.Colors.GREEN,
+                        duration=3000
+                    )
+                    self.page.snack_bar.open = True
+                    self.page.update()
+                else:
+                    error = result.get('error', 'Unknown error')
+                    print(f"❌ API Error: {error}")
+                    self.page.snack_bar = ft.SnackBar(
+                        content=ft.Text(f"❌ API Error: {error[:100]}"),
+                        bgcolor=ft.Colors.RED,
+                        duration=5000
+                    )
+                    self.page.snack_bar.open = True
+                    self.page.update()
+                
+            except Exception as ex:
+                error_msg = str(ex)
+                print(f"❌ Upload Exception: {ex}")
+                self.page.snack_bar = ft.SnackBar(
+                    content=ft.Text(f"❌ Upload failed: {error_msg[:100]}"),
+                    bgcolor=ft.Colors.RED,
+                    duration=5000
+                )
+                self.page.snack_bar.open = True
+                self.page.update()
+                import traceback
+                traceback.print_exc()
+        
+        self.page.run_task(upload_to_api)
+    
+    def handle_connect_bank(self, e):
+        """Handle bank connection via Plaid API"""
+        print("🔵 Connect Bank clicked!")
+        
         self.page.snack_bar = ft.SnackBar(
-            content=ft.Text("CSV import feature coming soon!"),
+            content=ft.Text("Connecting to Plaid via API..."),
             bgcolor=ft.Colors.BLUE
         )
         self.page.snack_bar.open = True
         self.page.update()
+        
+        async def connect_plaid():
+            print("🔵 Starting Plaid connection...")
+            
+            user_id = 'demo'
+            if self.auth_service.supabase and hasattr(self.auth_service, 'current_user'):
+                if hasattr(self.auth_service.current_user, 'id'):
+                    user_id = self.auth_service.current_user.id
+                else:
+                    user_id = str(self.auth_service.current_user)
+            
+            print(f"🔵 User ID: {user_id}")
+            print("🔵 Calling API create_plaid_link_token...")
+            
+            link_token = await self.api_client.create_plaid_link_token(user_id)
+            print(f"🔵 API response: {link_token}")
+            
+            if link_token:
+                # Open Plaid Link in browser via API endpoint
+                import webbrowser
+                
+                # Get user ID
+                user_id = 'demo'
+                if self.auth_service.supabase and hasattr(self.auth_service, 'current_user'):
+                    if hasattr(self.auth_service.current_user, 'id'):
+                        user_id = self.auth_service.current_user.id
+                
+                # Build URL through API
+                plaid_url = f"http://localhost:8000/plaid-link?link_token={link_token}&user_id={user_id}"
+                
+                print(f"✅ Opening Plaid Link: {plaid_url}")
+                webbrowser.open(plaid_url)
+                
+                # Show success message
+                self.page.snack_bar = ft.SnackBar(
+                    content=ft.Text("✅ Plaid Link opened in browser! Select your bank and log in."),
+                    bgcolor=ft.Colors.GREEN,
+                    duration=8000
+                )
+                self.page.snack_bar.open = True
+                self.page.update()
+                
+                print(f"✅ Token: {link_token[:30]}...")
+            else:
+                self.page.snack_bar = ft.SnackBar(
+                    content=ft.Text("❌ Failed to create Plaid link token"),
+                    bgcolor=ft.Colors.RED,
+                    duration=5000
+                )
+                self.page.snack_bar.open = True
+                self.page.update()
+                print("❌ Link token creation failed")
+        
+        self.page.run_task(connect_plaid)
+    
+    def close_dialog(self):
+        """Close the open dialog"""
+        if self.page.dialog:
+            self.page.dialog.open = False
+            self.page.update()
     
     async def handle_logout(self, e):
         """Handle logout"""
