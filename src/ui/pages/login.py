@@ -63,7 +63,7 @@ class LoginPage(ft.Container):
                                 fit=ft.ImageFit.CONTAIN,
                             ),
                             ft.Text(
-                                "Budget Rodeo",
+                                "Big $hot",
                                 size=40,
                                 weight=ft.FontWeight.BOLD,
                                 color=ft.Colors.BLACK
@@ -107,7 +107,7 @@ class LoginPage(ft.Container):
                                     ),
                                     ft.TextButton(
                                         "Sign Up",
-                                        on_click=lambda _: self.page.go("/signup")
+                                        on_click=lambda _: self.page.go("/signup"),
                                     )
                                 ],
                                 alignment=ft.MainAxisAlignment.CENTER
