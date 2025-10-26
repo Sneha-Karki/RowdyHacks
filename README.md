@@ -120,6 +120,6 @@ git push origin feature-name
 ## Team
 
 - Fernanda Garza
-- Sneha Kharki
+- Sneha Karki
 - Emily Steinmetz
 - Perfect Sylvester
