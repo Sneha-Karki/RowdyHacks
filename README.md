@@ -119,4 +119,7 @@ git push origin feature-name
 
 ## Team
 
-- [List team members here]
+- Fernanda Garza
+- Sneha Kharki
+- Emily Steinmetz
+- Perfect Sylvester
