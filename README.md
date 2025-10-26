@@ -1,4 +1,4 @@
-# Budget Buddy 🐍
+# Big $hot 🐍
 
 A personal finance manager with Randy, your friendly budget-tracking snake companion! Built for RowdyHacks.
 
@@ -18,7 +18,7 @@ A personal finance manager with Randy, your friendly budget-tracking snake compa
 - Python 3.11 or higher
 - Virtual environment (recommended)
 - Supabase account
-- (Optional) Plaid developer account
+- Plaid developer account
 - (Optional) Claude or OpenAI API key for AI insights
 
 ### Installation

@@ -16,6 +16,7 @@ class BudgetsPage(ft.Container):
         self.api_client = APIClient()
         self.transactions = []
         self.category_totals = {}
+        self.category_budgets = {}  # Store budget goals for each category
         
         # Category colors and icons
         self.category_config = {
@@ -92,11 +93,21 @@ class BudgetsPage(ft.Container):
                 # Header
                 ft.Row(
                     controls=[
-                        ft.Text(
-                            "Budget Breakdown",
-                            size=32,
-                            weight=ft.FontWeight.BOLD,
-                            color=ft.Colors.BLACK
+                        ft.Column(
+                            controls=[
+                                ft.Text(
+                                    "Monthly Budget Breakdown",
+                                    size=32,
+                                    weight=ft.FontWeight.BOLD,
+                                    color=ft.Colors.BLACK
+                                ),
+                                ft.Text(
+                                    f"{datetime.now().strftime('%B %Y')}",
+                                    size=14,
+                                    color=ft.Colors.GREY_600
+                                )
+                            ],
+                            spacing=5
                         ),
                         ft.Container(expand=True),
                         ft.IconButton(
@@ -138,12 +149,22 @@ class BudgetsPage(ft.Container):
             # Get all transactions
             self.transactions = await self.api_client.get_transactions(user_id, 1000)
             
-            # Calculate totals by category (only expenses)
+            # Get current month/year for filtering
+            now = datetime.now()
+            current_month = now.month
+            current_year = now.year
+            
+            # Calculate totals by category (only expenses from current month)
             category_totals = defaultdict(float)
             for txn in self.transactions:
                 if txn['transaction_type'] == 'expense':
-                    category = txn.get('category', 'Other')
-                    category_totals[category] += txn['amount']
+                    # Parse transaction date
+                    txn_date = datetime.fromisoformat(txn['transaction_date']) if isinstance(txn['transaction_date'], str) else txn['transaction_date']
+                    
+                    # Only include current month transactions
+                    if txn_date.month == current_month and txn_date.year == current_year:
+                        category = txn.get('category', 'Other')
+                        category_totals[category] += txn['amount']
             
             self.category_totals = dict(category_totals)
             self.update_budget_display()
@@ -258,44 +279,119 @@ class BudgetsPage(ft.Container):
     
     def create_category_oval(self, category: str, amount: float, percentage: float, color, icon):
         """Create an oval card for a category"""
-        return ft.Container(
-            content=ft.Column(
+        # Get budget goal for this category
+        budget_goal = self.category_budgets.get(category, 0)
+        
+        # Determine if over budget
+        is_over_budget = budget_goal > 0 and amount > budget_goal
+        is_within_budget = budget_goal > 0 and amount <= budget_goal
+        
+        # Budget indicator arrow
+        budget_indicator = None
+        if is_over_budget:
+            budget_indicator = ft.Row(
                 controls=[
-                    ft.Icon(icon, size=50, color=color),
+                    ft.Icon(ft.Icons.ARROW_UPWARD, size=20, color=ft.Colors.RED),
                     ft.Text(
-                        category,
-                        size=18,
-                        weight=ft.FontWeight.BOLD,
-                        color=ft.Colors.BLACK,
-                        text_align=ft.TextAlign.CENTER
-                    ),
-                    ft.Text(
-                        f"${amount:,.2f}",
-                        size=24,
-                        weight=ft.FontWeight.BOLD,
-                        color=color,
-                        text_align=ft.TextAlign.CENTER
-                    ),
-                    ft.Container(
-                        content=ft.Text(
-                            f"{percentage:.1f}%",
-                            size=14,
-                            weight=ft.FontWeight.W_500,
-                            color=ft.Colors.WHITE
-                        ),
-                        bgcolor=color,
-                        padding=ft.padding.symmetric(horizontal=15, vertical=5),
-                        border_radius=20
+                        f"${amount - budget_goal:,.2f} over",
+                        size=12,
+                        color=ft.Colors.RED,
+                        weight=ft.FontWeight.BOLD
                     )
                 ],
+                alignment=ft.MainAxisAlignment.CENTER,
+                spacing=5
+            )
+        elif is_within_budget:
+            budget_indicator = ft.Row(
+                controls=[
+                    ft.Icon(ft.Icons.ARROW_DOWNWARD, size=20, color=ft.Colors.GREEN),
+                    ft.Text(
+                        f"${budget_goal - amount:,.2f} under",
+                        size=12,
+                        color=ft.Colors.GREEN,
+                        weight=ft.FontWeight.BOLD
+                    )
+                ],
+                alignment=ft.MainAxisAlignment.CENTER,
+                spacing=5
+            )
+        
+        controls = [
+            ft.Icon(icon, size=50, color=color),
+            ft.Text(
+                category,
+                size=18,
+                weight=ft.FontWeight.BOLD,
+                color=ft.Colors.BLACK,
+                text_align=ft.TextAlign.CENTER
+            ),
+            ft.Text(
+                f"${amount:,.2f}",
+                size=24,
+                weight=ft.FontWeight.BOLD,
+                color=color,
+                text_align=ft.TextAlign.CENTER
+            ),
+        ]
+        
+        # Add budget goal if set
+        if budget_goal > 0:
+            controls.append(
+                ft.Text(
+                    f"Goal: ${budget_goal:,.2f}",
+                    size=12,
+                    color=ft.Colors.GREY_600,
+                    text_align=ft.TextAlign.CENTER
+                )
+            )
+        
+        # Add budget indicator
+        if budget_indicator:
+            controls.append(budget_indicator)
+        else:
+            controls.append(
+                ft.Container(
+                    content=ft.Text(
+                        f"{percentage:.1f}%",
+                        size=14,
+                        weight=ft.FontWeight.W_500,
+                        color=ft.Colors.WHITE
+                    ),
+                    bgcolor=color,
+                    padding=ft.padding.symmetric(horizontal=15, vertical=5),
+                    border_radius=20
+                )
+            )
+        
+        # Add "Set Limit" button
+        controls.append(
+            ft.Container(height=5)
+        )
+        controls.append(
+            ft.ElevatedButton(
+                "Set Limit",
+                icon=ft.Icons.EDIT,
+                on_click=lambda _: self.show_budget_dialog(category, amount, budget_goal, color),
+                style=ft.ButtonStyle(
+                    bgcolor=ft.Colors.with_opacity(0.1, color),
+                    color=color
+                ),
+                height=30
+            )
+        )
+        
+        return ft.Container(
+            content=ft.Column(
+                controls=controls,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                spacing=10
+                spacing=8
             ),
             bgcolor=ft.Colors.WHITE,
-            padding=30,
+            padding=20,
             border_radius=100,  # Oval shape
             width=250,
-            height=250,
+            height=320,  # Increased height for budget button
             shadow=ft.BoxShadow(
                 spread_radius=0,
                 blur_radius=15,
@@ -305,3 +401,135 @@ class BudgetsPage(ft.Container):
             border=ft.border.all(3, color),
             animate=ft.Animation(300, ft.AnimationCurve.EASE_OUT)
         )
+    
+    def show_budget_dialog(self, category: str, current_amount: float, current_budget: float, color):
+        """Show dialog to set budget limit for category using BottomSheet for web compatibility"""
+        
+        budget_input = ft.TextField(
+            label=f"Monthly Limit for {category}",
+            hint_text="Enter amount (e.g., 500)",
+            value=str(int(current_budget)) if current_budget > 0 else "",
+            prefix_text="$",
+            keyboard_type=ft.KeyboardType.NUMBER,
+            width=400
+        )
+        
+        def save_budget(e):
+            try:
+                new_budget = float(budget_input.value) if budget_input.value else 0
+                self.category_budgets[category] = new_budget
+                
+                # Show success message
+                self.page.snack_bar = ft.SnackBar(
+                    content=ft.Text(f"✅ Limit set for {category}: ${new_budget:,.2f}"),
+                    bgcolor=ft.Colors.GREEN
+                )
+                self.page.snack_bar.open = True
+                
+                # Close bottom sheet and refresh
+                bottom_sheet.open = False
+                self.page.update()
+                self.update_budget_display()
+                
+            except ValueError:
+                self.page.snack_bar = ft.SnackBar(
+                    content=ft.Text("❌ Please enter a valid number"),
+                    bgcolor=ft.Colors.RED
+                )
+                self.page.snack_bar.open = True
+                self.page.update()
+        
+        def close_bottom_sheet(e):
+            bottom_sheet.open = False
+            if self.page:
+                self.page.update()
+        
+        bottom_sheet = ft.BottomSheet(
+            content=ft.Container(
+                content=ft.Column(
+                    controls=[
+                        ft.Row(
+                            controls=[
+                                ft.Text(
+                                    f"Set Monthly Limit for {category}",
+                                    size=24,
+                                    weight=ft.FontWeight.BOLD
+                                ),
+                                ft.IconButton(
+                                    icon=ft.Icons.CLOSE,
+                                    on_click=close_bottom_sheet,
+                                    tooltip="Close"
+                                )
+                            ],
+                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+                        ),
+                        ft.Divider(),
+                        ft.Text(
+                            f"Current spending this month: ${current_amount:,.2f}",
+                            size=16,
+                            weight=ft.FontWeight.BOLD,
+                            color=ft.Colors.GREY_800
+                        ),
+                        ft.Container(height=15),
+                        ft.Text(
+                            "Enter your monthly spending limit:",
+                            size=14,
+                            color=ft.Colors.GREY_700
+                        ),
+                        ft.Container(height=5),
+                        budget_input,
+                        ft.Container(height=15),
+                        ft.Container(
+                            content=ft.Row(
+                                controls=[
+                                    ft.Icon(ft.Icons.INFO_OUTLINED, size=16, color=ft.Colors.BLUE_400),
+                                    ft.Container(width=5),
+                                    ft.Text(
+                                        "Set a realistic monthly limit to track your spending",
+                                        size=12,
+                                        color=ft.Colors.GREY_600,
+                                        italic=True
+                                    )
+                                ]
+                            ),
+                            bgcolor=ft.Colors.BLUE_50,
+                            padding=10,
+                            border_radius=8
+                        ),
+                        ft.Container(height=10),
+                        ft.Text(
+                            "• Green arrow ↓ = Under budget\n• Red arrow ↑ = Over budget",
+                            size=11,
+                            color=ft.Colors.GREY_600
+                        ),
+                        ft.Container(height=20),
+                        ft.Row(
+                            controls=[
+                                ft.TextButton(
+                                    "Cancel",
+                                    on_click=close_bottom_sheet,
+                                    style=ft.ButtonStyle(color=ft.Colors.GREY_700)
+                                ),
+                                ft.ElevatedButton(
+                                    "Set Limit",
+                                    icon=ft.Icons.CHECK,
+                                    on_click=save_budget,
+                                    style=ft.ButtonStyle(bgcolor=color, color=ft.Colors.WHITE)
+                                )
+                            ],
+                            alignment=ft.MainAxisAlignment.END
+                        )
+                    ],
+                    tight=True,
+                    spacing=5
+                ),
+                padding=30,
+                width=600
+            ),
+            open=True,
+            dismissible=True,
+            on_dismiss=close_bottom_sheet
+        )
+        
+        self.page.overlay.append(bottom_sheet)
+        self.page.update()

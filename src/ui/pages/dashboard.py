@@ -254,6 +254,7 @@ class DashboardPage(ft.Container):
                         "Add Transaction",
                         icon=ft.Icons.ADD,
                         width=200,
+                        on_click=self.show_transactions_page,
                         style=ft.ButtonStyle(bgcolor=ft.Colors.BLUE, color=ft.Colors.WHITE)
                     ),
                     ft.ElevatedButton(
@@ -415,7 +416,7 @@ class DashboardPage(ft.Container):
     
     def show_transactions_page(self, e):
         """Show the full transactions page"""
-        self.content_area.content = TransactionsPage(self.page, self.auth_service)
+        self.content_area.content = TransactionsPage(self.page, self.auth_service, self)
         self.page.update()
     
     def handle_load_sample(self, e):
