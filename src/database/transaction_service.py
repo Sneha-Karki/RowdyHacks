@@ -44,12 +44,20 @@ class TransactionService:
             return {'income': 0, 'expenses': 0, 'savings': 0, 'savings_rate': 0}
         
         try:
+            # Calculate next month for date range
+            if month == 12:
+                next_month = 1
+                next_year = year + 1
+            else:
+                next_month = month + 1
+                next_year = year
+            
             # Get all transactions for the month
             response = self.supabase.table('transactions')\
                 .select('amount, transaction_type')\
                 .eq('user_id', user_id)\
                 .gte('transaction_date', f'{year}-{month:02d}-01')\
-                .lt('transaction_date', f'{year}-{month+1 if month < 12 else 1:02d}-01')\
+                .lt('transaction_date', f'{next_year}-{next_month:02d}-01')\
                 .execute()
             
             transactions = response.data if response.data else []
