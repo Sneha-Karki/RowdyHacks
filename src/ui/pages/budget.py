@@ -4,6 +4,7 @@ import flet as ft
 from datetime import datetime
 from collections import defaultdict
 from ...services.api_client import APIClient
+from ..theme import Theme
 
 
 class BudgetsPage(ft.Container):
@@ -64,7 +65,9 @@ class BudgetsPage(ft.Container):
         # Build UI
         self.content = self.build_ui()
         self.expand = True
-        self.bgcolor = ft.Colors.WHITE
+        # Use theme-aware background
+        is_dark = page.is_dark_mode if hasattr(page, 'is_dark_mode') else False
+        self.bgcolor = Theme.DARK_SURFACE if is_dark else Theme.LIGHT_KHAKI_BG
         self.padding = 30
         self.border_radius = 10
         
@@ -73,6 +76,9 @@ class BudgetsPage(ft.Container):
     
     def build_ui(self):
         """Build the budget page UI"""
+        is_dark = self.page.is_dark_mode if hasattr(self.page, 'is_dark_mode') else False
+        text_color = Theme.DARK_TEXT if is_dark else Theme.NOIR
+        
         self.budget_content = ft.Column(
             controls=[
                 ft.Row(
@@ -99,7 +105,7 @@ class BudgetsPage(ft.Container):
                                     "Monthly Budget Breakdown",
                                     size=32,
                                     weight=ft.FontWeight.BOLD,
-                                    color=ft.Colors.BLACK
+                                    color=text_color
                                 ),
                                 ft.Text(
                                     f"{datetime.now().strftime('%B %Y')}",
@@ -404,6 +410,8 @@ class BudgetsPage(ft.Container):
     def show_budget_dialog(self, category: str, current_amount: float, current_budget: float, color):
         """Show dialog to set budget limit for category using BottomSheet for web compatibility"""
         
+        is_dark = self.page.is_dark_mode if hasattr(self.page, 'is_dark_mode') else False
+        
         budget_input = ft.TextField(
             label=f"Monthly Limit for {category}",
             hint_text="Enter amount (e.g., 500)",
@@ -421,7 +429,7 @@ class BudgetsPage(ft.Container):
                 # Show success message
                 self.page.snack_bar = ft.SnackBar(
                     content=ft.Text(f"✅ Limit set for {category}: ${new_budget:,.2f}"),
-                    bgcolor=ft.Colors.GREEN
+                    bgcolor=Theme.WASABI if self.page.is_dark_mode else Theme.EMERALD
                 )
                 self.page.snack_bar.open = True
                 
@@ -433,7 +441,7 @@ class BudgetsPage(ft.Container):
             except ValueError:
                 self.page.snack_bar = ft.SnackBar(
                     content=ft.Text("❌ Please enter a valid number"),
-                    bgcolor=ft.Colors.RED
+                    bgcolor=Theme.MAPLE
                 )
                 self.page.snack_bar.open = True
                 self.page.update()
@@ -467,13 +475,13 @@ class BudgetsPage(ft.Container):
                             f"Current spending this month: ${current_amount:,.2f}",
                             size=16,
                             weight=ft.FontWeight.BOLD,
-                            color=ft.Colors.GREY_800
+                            color=Theme.DARK_TEXT if is_dark else Theme.NOIR
                         ),
                         ft.Container(height=15),
                         ft.Text(
                             "Enter your monthly spending limit:",
                             size=14,
-                            color=ft.Colors.GREY_700
+                            color=Theme.DARK_TEXT if is_dark else Theme.NOIR
                         ),
                         ft.Container(height=5),
                         budget_input,
@@ -481,17 +489,17 @@ class BudgetsPage(ft.Container):
                         ft.Container(
                             content=ft.Row(
                                 controls=[
-                                    ft.Icon(ft.Icons.INFO_OUTLINED, size=16, color=ft.Colors.BLUE_400),
+                                    ft.Icon(ft.Icons.INFO_OUTLINED, size=16, color=Theme.WASABI if is_dark else Theme.EARTH),
                                     ft.Container(width=5),
                                     ft.Text(
                                         "Set a realistic monthly limit to track your spending",
                                         size=12,
-                                        color=ft.Colors.GREY_600,
+                                        color=Theme.DARK_TEXT if is_dark else Theme.NOIR,
                                         italic=True
                                     )
                                 ]
                             ),
-                            bgcolor=ft.Colors.BLUE_50,
+                            bgcolor=Theme.DARK_BG if is_dark else Theme.LIGHT_KHAKI_BG,
                             padding=10,
                             border_radius=8
                         ),
@@ -499,7 +507,7 @@ class BudgetsPage(ft.Container):
                         ft.Text(
                             "• Green arrow ↓ = Under budget\n• Red arrow ↑ = Over budget",
                             size=11,
-                            color=ft.Colors.GREY_600
+                            color=Theme.DARK_TEXT if is_dark else Theme.NOIR
                         ),
                         ft.Container(height=20),
                         ft.Row(
@@ -507,7 +515,7 @@ class BudgetsPage(ft.Container):
                                 ft.TextButton(
                                     "Cancel",
                                     on_click=close_bottom_sheet,
-                                    style=ft.ButtonStyle(color=ft.Colors.GREY_700)
+                                    style=ft.ButtonStyle(color=Theme.DARK_TEXT if is_dark else Theme.NOIR)
                                 ),
                                 ft.ElevatedButton(
                                     "Set Limit",

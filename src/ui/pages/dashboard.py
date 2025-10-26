@@ -7,7 +7,10 @@ from src.ui.pages.randy_page import RandyPage
 from src.ui.pages.transactions_page import TransactionsPage
 from src.ui.pages.budget import BudgetsPage
 from src.ui.pages.leaderboard import InsightsPage
+from src.ui.pages.profile import ProfilePage
+from src.ui.pages.settings import SettingsPage
 from ...services.api_client import APIClient
+from ..theme import Theme
 
 
 class DashboardPage(ft.Container):
@@ -19,6 +22,10 @@ class DashboardPage(ft.Container):
         self.auth_service = auth_service
         self.api_client = APIClient()
         self.current_view = "overview"
+        
+        # Initialize theme
+        if not hasattr(page, 'is_dark_mode'):
+            page.is_dark_mode = False
         
         # Data storage
         self.balance = 0.0
@@ -35,13 +42,22 @@ class DashboardPage(ft.Container):
     
     def build_ui(self):
         """Build the dashboard UI"""
+        # Get current theme colors
+        is_dark = self.page.is_dark_mode if hasattr(self.page, 'is_dark_mode') else False
+        # Use background images like signup page
+        bg_image = "signupbg.png" if not is_dark else "signupbg.png"  # Can use different image for dark mode
+        
         return ft.Stack([
-            # Background image
-            ft.Image(
-                src="background.png",
-                width=float("inf"),
-                height=float("inf"),
-                fit=ft.ImageFit.COVER,
+            # Background image (like signup page)
+            ft.Container(
+                content=ft.Image(
+                    src=bg_image,
+                    width=float("inf"),
+                    height=float("inf"),
+                    fit=ft.ImageFit.COVER,
+                    expand=True
+                ),
+                expand=True
             ),
             # Main content
             self.build_main_content()
@@ -49,6 +65,12 @@ class DashboardPage(ft.Container):
     
     def build_main_content(self):
         """Build main content area"""
+        # Get theme colors
+        is_dark = self.page.is_dark_mode if hasattr(self.page, 'is_dark_mode') else False
+        nav_bg = Theme.DARK_SURFACE if is_dark else ft.Colors.WHITE
+        app_bar_bg = Theme.DARK_SURFACE if is_dark else ft.Colors.WHITE
+        text_color = Theme.DARK_TEXT if is_dark else Theme.NOIR
+        
         # Navigation rail
         nav_rail = ft.NavigationRail(
             selected_index=0,
@@ -78,7 +100,7 @@ class DashboardPage(ft.Container):
                 ),
             ],
             on_change=self.handle_nav_change,
-            bgcolor=ft.Colors.WHITE
+            bgcolor=nav_bg
         )
         
         # Main content area
@@ -93,37 +115,48 @@ class DashboardPage(ft.Container):
             content=ft.Row(
                 controls=[
                     ft.Text(
-                        "Budget Buddy",
+                        "Big $hot",
                         size=24,
                         weight=ft.FontWeight.BOLD,
-                        color=ft.Colors.BLUE
+                        color=text_color
                     ),
                     ft.Container(expand=True),
                     ft.IconButton(
                         icon=ft.Icons.UPLOAD_FILE,
                         tooltip="Import CSV",
-                        on_click=self.handle_csv_import
+                        on_click=self.handle_csv_import,
+                        icon_color=text_color
                     ),
                     ft.IconButton(
                         icon=ft.Icons.NOTIFICATIONS_OUTLINED,
-                        tooltip="Notifications"
+                        tooltip="Notifications",
+                        icon_color=text_color
                     ),
                     ft.PopupMenuButton(
                         items=[
-                            ft.PopupMenuItem(text="Profile", icon=ft.Icons.PERSON),
-                            ft.PopupMenuItem(text="Settings", icon=ft.Icons.SETTINGS),
+                            ft.PopupMenuItem(
+                                text="Profile",
+                                icon=ft.Icons.PERSON,
+                                on_click=self.show_profile_page
+                            ),
+                            ft.PopupMenuItem(
+                                text="Settings",
+                                icon=ft.Icons.SETTINGS,
+                                on_click=self.show_settings_page
+                            ),
                             ft.PopupMenuItem(),
                             ft.PopupMenuItem(
                                 text="Sign Out",
                                 icon=ft.Icons.LOGOUT,
                                 on_click=self.handle_logout
                             ),
-                        ]
+                        ],
+                        icon_color=text_color
                     )
                 ],
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN
             ),
-            bgcolor=ft.Colors.WHITE,
+            bgcolor=app_bar_bg,
             padding=15,
             shadow=ft.BoxShadow(
                 spread_radius=0,
@@ -176,12 +209,18 @@ class DashboardPage(ft.Container):
     
     def build_overview(self):
         """Build overview dashboard"""
-        # Summary cards
+        # Get theme colors
+        is_dark = self.page.is_dark_mode if hasattr(self.page, 'is_dark_mode') else False
+        text_color = Theme.DARK_TEXT if is_dark else Theme.NOIR
+        # Use light emerald background for light mode instead of white
+        card_bg = Theme.DARK_SURFACE if is_dark else Theme.LIGHT_EMERALD_BG
+        
+        # Summary cards with theme-aware colors
         balance_card = self.create_stat_card(
             "Total Balance",
             f"${self.balance:,.2f}",
             ft.Icons.ACCOUNT_BALANCE_WALLET,
-            ft.Colors.BLUE
+            Theme.WASABI if is_dark else Theme.EARTH
         )
         
         income = self.monthly_summary.get('income', 0)
@@ -189,7 +228,7 @@ class DashboardPage(ft.Container):
             "Monthly Income",
             f"${income:,.2f}",
             ft.Icons.TRENDING_UP,
-            ft.Colors.GREEN
+            Theme.WASABI if is_dark else Theme.EMERALD
         )
         
         expenses = self.monthly_summary.get('expenses', 0)
@@ -197,7 +236,7 @@ class DashboardPage(ft.Container):
             "Monthly Expenses",
             f"${expenses:,.2f}",
             ft.Icons.TRENDING_DOWN,
-            ft.Colors.RED
+            Theme.MAPLE if is_dark else Theme.MAPLE
         )
         
         savings_rate = self.monthly_summary.get('savings_rate', 0)
@@ -205,12 +244,12 @@ class DashboardPage(ft.Container):
             "Savings Rate",
             f"{savings_rate:.1f}%",
             ft.Icons.SAVINGS,
-            ft.Colors.PURPLE
+            Theme.KHAKI if is_dark else Theme.KHAKI
         )
         
         transaction_controls = [
-            ft.Text("Recent Transactions", size=20, weight=ft.FontWeight.BOLD),
-            ft.Divider(),
+            ft.Text("Recent Transactions", size=20, weight=ft.FontWeight.BOLD, color=text_color),
+            ft.Divider(color=Theme.DARK_PRIMARY if is_dark else Theme.LIGHT_EMERALD),
         ]
         
         for txn in self.transactions[:5]:
@@ -238,50 +277,65 @@ class DashboardPage(ft.Container):
                 controls=transaction_controls,
                 spacing=10
             ),
-            bgcolor=ft.Colors.WHITE,
+            bgcolor=card_bg,
             padding=20,
             border_radius=10,
+            border=ft.border.all(1, Theme.DARK_PRIMARY if is_dark else Theme.LIGHT_EMERALD),
             shadow=ft.BoxShadow(blur_radius=10, color=ft.Colors.with_opacity(0.1, ft.Colors.BLACK))
         )
         
         quick_actions = ft.Container(
             content=ft.Column(
                 controls=[
-                    ft.Text("Quick Actions", size=20, weight=ft.FontWeight.BOLD),
-                    ft.Divider(),
+                    ft.Text("Quick Actions", size=20, weight=ft.FontWeight.BOLD, color=text_color),
+                    ft.Divider(color=Theme.DARK_PRIMARY if is_dark else Theme.LIGHT_EMERALD),
                     ft.ElevatedButton(
                         "Add Transaction",
                         icon=ft.Icons.ADD,
                         width=200,
                         on_click=self.show_transactions_page,
-                        style=ft.ButtonStyle(bgcolor=ft.Colors.BLUE, color=ft.Colors.WHITE)
+                        style=ft.ButtonStyle(
+                            bgcolor=Theme.DARK_PRIMARY if is_dark else Theme.EMERALD, 
+                            color=ft.Colors.WHITE
+                        )
                     ),
                     ft.ElevatedButton(
                         "Import CSV",
                         icon=ft.Icons.UPLOAD_FILE,
                         width=200,
                         on_click=self.handle_csv_import,
-                        style=ft.ButtonStyle(bgcolor=ft.Colors.GREEN, color=ft.Colors.WHITE)
+                        style=ft.ButtonStyle(
+                            bgcolor=Theme.WASABI if is_dark else ft.Colors.GREEN, 
+                            color=ft.Colors.WHITE
+                        )
                     ),
                     ft.ElevatedButton(
                         "Connect Bank (Plaid)",
                         icon=ft.Icons.ACCOUNT_BALANCE,
                         width=200,
                         on_click=self.handle_connect_bank,
-                        style=ft.ButtonStyle(bgcolor=ft.Colors.ORANGE, color=ft.Colors.WHITE)
+                        style=ft.ButtonStyle(
+                            bgcolor=Theme.KHAKI if is_dark else ft.Colors.ORANGE, 
+                            color=Theme.NOIR
+                        )
                     ),
                     ft.ElevatedButton(
                         "AI Insights",
                         icon=ft.Icons.AUTO_AWESOME,
                         width=200,
-                        style=ft.ButtonStyle(bgcolor=ft.Colors.PURPLE, color=ft.Colors.WHITE)
+                        style=ft.ButtonStyle(
+                            bgcolor=Theme.EARTH if is_dark else ft.Colors.PURPLE, 
+                            color=ft.Colors.WHITE
+                        )
                     ),
                 ],
-                spacing=15
+                spacing=15,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER
             ),
-            bgcolor=ft.Colors.WHITE,
+            bgcolor=card_bg,
             padding=20,
             border_radius=10,
+            border=ft.border.all(1, Theme.DARK_PRIMARY if is_dark else Theme.LIGHT_EMERALD),
             shadow=ft.BoxShadow(blur_radius=10, color=ft.Colors.with_opacity(0.1, ft.Colors.BLACK))
         )
         
@@ -295,8 +349,8 @@ class DashboardPage(ft.Container):
                 ft.Container(height=20),
                 ft.Row(
                     controls=[
-                        ft.Container(content=transactions_list, expand=2),
-                        ft.Container(content=quick_actions, expand=1)
+                        ft.Container(content=quick_actions, expand=1),
+                        ft.Container(content=transactions_list, expand=2)
                     ],
                     spacing=20,
                     expand=True
@@ -308,6 +362,10 @@ class DashboardPage(ft.Container):
     
     def create_stat_card(self, title: str, value: str, icon, color):
         """Create a statistics card"""
+        is_dark = self.page.is_dark_mode if hasattr(self.page, 'is_dark_mode') else False
+        text_color = Theme.DARK_TEXT if is_dark else Theme.NOIR
+        card_bg = Theme.DARK_SURFACE if is_dark else Theme.LIGHT_EMERALD_BG
+        
         return ft.Container(
             content=ft.Column(
                 controls=[
@@ -317,22 +375,25 @@ class DashboardPage(ft.Container):
                             ft.Container(expand=True),
                         ]
                     ),
-                    ft.Text(title, size=14, color=ft.Colors.GREY_600),
-                    ft.Text(value, size=28, weight=ft.FontWeight.BOLD),
+                    ft.Text(title, size=14, color=Theme.DARK_TEXT if is_dark else ft.Colors.GREY_600),
+                    ft.Text(value, size=28, weight=ft.FontWeight.BOLD, color=text_color),
                 ],
                 spacing=10
             ),
-            bgcolor=ft.Colors.WHITE,
+            bgcolor=card_bg,
             padding=20,
             border_radius=10,
             width=250,
+            border=ft.border.all(1, Theme.DARK_PRIMARY if is_dark else Theme.LIGHT_EMERALD),
             shadow=ft.BoxShadow(blur_radius=10, color=ft.Colors.with_opacity(0.1, ft.Colors.BLACK))
         )
     
     def create_transaction_item(self, title: str, amount: str, category: str, date: datetime):
         """Create a transaction list item"""
+        is_dark = self.page.is_dark_mode if hasattr(self.page, 'is_dark_mode') else False
+        text_color = Theme.DARK_TEXT if is_dark else Theme.NOIR
         is_income = amount.startswith("+")
-        color = ft.Colors.GREEN if is_income else ft.Colors.RED
+        color = Theme.WASABI if is_income else Theme.MAPLE
         
         return ft.Container(
             content=ft.Row(
@@ -343,8 +404,8 @@ class DashboardPage(ft.Container):
                     ),
                     ft.Column(
                         controls=[
-                            ft.Text(title, weight=ft.FontWeight.BOLD),
-                            ft.Text(category, size=12, color=ft.Colors.GREY_600)
+                            ft.Text(title, weight=ft.FontWeight.BOLD, color=text_color),
+                            ft.Text(category, size=12, color=Theme.DARK_TEXT if is_dark else ft.Colors.GREY_600)
                         ],
                         spacing=2,
                         expand=True
@@ -354,7 +415,7 @@ class DashboardPage(ft.Container):
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN
             ),
             padding=10,
-            border=ft.border.all(1, ft.Colors.GREY_200),
+            border=ft.border.all(1, Theme.DARK_PRIMARY if is_dark else Theme.LIGHT_EMERALD),
             border_radius=8
         )
     
@@ -417,7 +478,7 @@ class DashboardPage(ft.Container):
             try:
                 self.page.snack_bar = ft.SnackBar(
                     content=ft.Text("Loading sample data..."),
-                    bgcolor=ft.Colors.BLUE
+                    bgcolor=Theme.WASABI if self.page.is_dark_mode else Theme.EARTH
                 )
                 self.page.snack_bar.open = True
                 self.page.update()
@@ -441,7 +502,7 @@ class DashboardPage(ft.Container):
                     
                     self.page.snack_bar = ft.SnackBar(
                         content=ft.Text(f"✅ Loaded {imported} sample transactions!"),
-                        bgcolor=ft.Colors.GREEN,
+                        bgcolor=Theme.WASABI if self.page.is_dark_mode else Theme.EMERALD,
                         duration=3000
                     )
                     self.page.snack_bar.open = True
@@ -451,7 +512,7 @@ class DashboardPage(ft.Container):
                     print(f"❌ Error: {error}")
                     self.page.snack_bar = ft.SnackBar(
                         content=ft.Text(f"❌ Error: {error[:100]}"),
-                        bgcolor=ft.Colors.RED,
+                        bgcolor=Theme.MAPLE,
                         duration=5000
                     )
                     self.page.snack_bar.open = True
@@ -460,7 +521,7 @@ class DashboardPage(ft.Container):
                 print(f"❌ Exception: {ex}")
                 self.page.snack_bar = ft.SnackBar(
                     content=ft.Text(f"❌ Failed: {str(ex)[:100]}"),
-                    bgcolor=ft.Colors.RED,
+                    bgcolor=Theme.MAPLE,
                     duration=5000
                 )
                 self.page.snack_bar.open = True
@@ -511,7 +572,7 @@ class DashboardPage(ft.Container):
             try:
                 self.page.snack_bar = ft.SnackBar(
                     content=ft.Text(f"Uploading {file_info.name} to API..."),
-                    bgcolor=ft.Colors.BLUE
+                    bgcolor=Theme.WASABI if self.page.is_dark_mode else Theme.EARTH
                 )
                 self.page.snack_bar.open = True
                 self.page.update()
@@ -538,7 +599,7 @@ class DashboardPage(ft.Container):
                     
                     self.page.snack_bar = ft.SnackBar(
                         content=ft.Text(message),
-                        bgcolor=ft.Colors.GREEN,
+                        bgcolor=Theme.WASABI if self.page.is_dark_mode else Theme.EMERALD,
                         duration=3000
                     )
                     self.page.snack_bar.open = True
@@ -548,7 +609,7 @@ class DashboardPage(ft.Container):
                     print(f"❌ API Error: {error}")
                     self.page.snack_bar = ft.SnackBar(
                         content=ft.Text(f"❌ API Error: {error[:100]}"),
-                        bgcolor=ft.Colors.RED,
+                        bgcolor=Theme.MAPLE,
                         duration=5000
                     )
                     self.page.snack_bar.open = True
@@ -559,7 +620,7 @@ class DashboardPage(ft.Container):
                 print(f"❌ Upload Exception: {ex}")
                 self.page.snack_bar = ft.SnackBar(
                     content=ft.Text(f"❌ Upload failed: {error_msg[:100]}"),
-                    bgcolor=ft.Colors.RED,
+                    bgcolor=Theme.MAPLE,
                     duration=5000
                 )
                 self.page.snack_bar.open = True
@@ -575,7 +636,7 @@ class DashboardPage(ft.Container):
         
         self.page.snack_bar = ft.SnackBar(
             content=ft.Text("Connecting to Plaid via API..."),
-            bgcolor=ft.Colors.BLUE
+            bgcolor=Theme.WASABI if self.page.is_dark_mode else Theme.EARTH
         )
         self.page.snack_bar.open = True
         self.page.update()
@@ -615,7 +676,7 @@ class DashboardPage(ft.Container):
                 # Show success message
                 self.page.snack_bar = ft.SnackBar(
                     content=ft.Text("✅ Plaid Link opened in browser! Select your bank and log in."),
-                    bgcolor=ft.Colors.GREEN,
+                    bgcolor=Theme.WASABI if self.page.is_dark_mode else Theme.EMERALD,
                     duration=8000
                 )
                 self.page.snack_bar.open = True
@@ -625,7 +686,7 @@ class DashboardPage(ft.Container):
             else:
                 self.page.snack_bar = ft.SnackBar(
                     content=ft.Text("❌ Failed to create Plaid link token"),
-                    bgcolor=ft.Colors.RED,
+                    bgcolor=Theme.MAPLE,
                     duration=5000
                 )
                 self.page.snack_bar.open = True
@@ -633,6 +694,35 @@ class DashboardPage(ft.Container):
                 print("❌ Link token creation failed")
         
         self.page.run_task(connect_plaid)
+    
+    def show_profile_page(self, e):
+        """Show the profile page"""
+        self.content_area.content = ProfilePage(self.page, self.auth_service, self)
+        self.page.update()
+    
+    def show_settings_page(self, e):
+        """Show the settings page"""
+        self.content_area.content = SettingsPage(self.page, self.auth_service, self)
+        self.page.update()
+    
+    def refresh_with_theme(self):
+        """Refresh dashboard with current theme"""
+        # Rebuild entire UI with new theme - just rebuild everything
+        old_content = self.content
+        self.content = self.build_ui()
+        
+        # Restore the current view
+        if self.current_view == "overview":
+            self.content_area.content = self.build_overview()
+        elif self.current_view == "randy":
+            self.content_area.content = RandyPage(self.page, self.auth_service)
+        elif self.current_view == "budgets":
+            self.content_area.content = BudgetsPage(self.page, self.auth_service)
+        elif self.current_view == "insights":
+            self.content_area.content = InsightsPage(self.page, self.auth_service)
+        
+        self.update()
+        self.page.update()
     
     def close_dialog(self):
         """Close the open dialog"""

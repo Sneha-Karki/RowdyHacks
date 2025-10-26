@@ -3,6 +3,7 @@
 import flet as ft
 from src.ui.components.randy_pet import RandyPet
 from src.services.ai_insights import AIInsightsService
+from src.ui.theme import Theme
 
 class RandyPage(ft.Container):
     """A dedicated page for Randy with more interactions"""
@@ -15,11 +16,16 @@ class RandyPage(ft.Container):
         self.messages = []
         
         # Initialize chat components
+        is_dark = page.is_dark_mode if page and hasattr(page, 'is_dark_mode') else False
+        
         self.chat_input = ft.TextField(
             hint_text="Ask Randy something...",
             border_radius=10,
             expand=True,
-            on_submit=self.send_message
+            on_submit=self.send_message,
+            bgcolor=Theme.DARK_BG if is_dark else ft.Colors.WHITE,
+            color=Theme.DARK_TEXT if is_dark else Theme.NOIR,
+            border_color=Theme.DARK_PRIMARY if is_dark else Theme.LIGHT_EMERALD
         )
         
         self.chat_view = ft.ListView(
@@ -32,24 +38,32 @@ class RandyPage(ft.Container):
         # Build UI
         self.content = self.build_ui()
         self.expand = True
-        self.bgcolor = ft.Colors.GREY_50
+        # Use theme-aware background
+        is_dark = page.is_dark_mode if page and hasattr(page, 'is_dark_mode') else False
+        self.bgcolor = Theme.DARK_SURFACE if is_dark else Theme.LIGHT_MAPLE_BG if hasattr(Theme, 'LIGHT_MAPLE_BG') else Theme.LIGHT_WASABI_BG
     
     def build_ui(self):
         """Build Randy's page UI"""
+        is_dark = self.page.is_dark_mode if self.page and hasattr(self.page, 'is_dark_mode') else False
+        text_color = Theme.DARK_TEXT if is_dark else Theme.NOIR
+        card_bg = Theme.DARK_SURFACE if is_dark else ft.Colors.WHITE
+        accent_color = Theme.DARK_PRIMARY if is_dark else Theme.EMERALD
+        
         # Title
         title = ft.Text(
             "Randy's Room 🏠",
             size=32,
             weight=ft.FontWeight.BOLD,
-            color=ft.Colors.BLUE
+            color=text_color
         )
         
         # Randy container with more space
         randy_container = ft.Container(
-            content=RandyPet(),
-            bgcolor=ft.Colors.WHITE,
+            content=RandyPet(page=self.page),
+            bgcolor=card_bg,
             padding=40,
             border_radius=20,
+            border=ft.border.all(1, Theme.DARK_PRIMARY if is_dark else Theme.LIGHT_EMERALD),
             shadow=ft.BoxShadow(blur_radius=10, color=ft.Colors.with_opacity(0.1, ft.Colors.BLACK)),
             margin=ft.margin.symmetric(horizontal=40, vertical=20)
         )
@@ -62,7 +76,7 @@ class RandyPage(ft.Container):
                         "Chat with Randy 💬",
                         size=24,
                         weight=ft.FontWeight.BOLD,
-                        color=ft.Colors.BLUE
+                        color=text_color
                     ),
                     self.chat_view,
                     ft.Row(
@@ -70,7 +84,7 @@ class RandyPage(ft.Container):
                             self.chat_input,
                             ft.IconButton(
                                 icon=ft.Icons.SEND_ROUNDED,
-                                icon_color=ft.Colors.BLUE,
+                                icon_color=accent_color,
                                 on_click=self.send_message
                             )
                         ],
@@ -80,9 +94,10 @@ class RandyPage(ft.Container):
                 spacing=10,
                 expand=True
             ),
-            bgcolor=ft.Colors.WHITE,
+            bgcolor=card_bg,
             padding=20,
             border_radius=10,
+            border=ft.border.all(1, Theme.DARK_PRIMARY if is_dark else Theme.LIGHT_EMERALD),
             shadow=ft.BoxShadow(blur_radius=10, color=ft.Colors.with_opacity(0.1, ft.Colors.BLACK)),
             margin=ft.margin.symmetric(horizontal=40, vertical=10),
             expand=True
@@ -96,30 +111,35 @@ class RandyPage(ft.Container):
                         "About Randy 🐍",
                         size=24,
                         weight=ft.FontWeight.BOLD,
-                        color=ft.Colors.BLUE
+                        color=text_color
                     ),
                     ft.Text(
                         "• Randy is your personal finance companion",
-                        size=16
+                        size=16,
+                        color=text_color
                     ),
                     ft.Text(
                         "• His mood reflects your budget health",
-                        size=16
+                        size=16,
+                        color=text_color
                     ),
                     ft.Text(
                         "• Feed him apples to boost his energy",
-                        size=16
+                        size=16,
+                        color=text_color
                     ),
                     ft.Text(
                         "• Keep him happy by maintaining a healthy budget",
-                        size=16
+                        size=16,
+                        color=text_color
                     )
                 ],
                 spacing=10
             ),
-            bgcolor=ft.Colors.WHITE,
+            bgcolor=card_bg,
             padding=20,
             border_radius=10,
+            border=ft.border.all(1, Theme.DARK_PRIMARY if is_dark else Theme.LIGHT_EMERALD),
             shadow=ft.BoxShadow(blur_radius=10, color=ft.Colors.with_opacity(0.1, ft.Colors.BLACK)),
             margin=ft.margin.symmetric(horizontal=40, vertical=10)
         )
@@ -154,9 +174,18 @@ class RandyPage(ft.Container):
     
     def create_message_bubble(self, text: str, is_user: bool):
         """Create a chat message bubble"""
+        is_dark = self.page.is_dark_mode if self.page and hasattr(self.page, 'is_dark_mode') else False
+        
+        if is_user:
+            bg_color = Theme.DARK_PRIMARY if is_dark else Theme.EMERALD
+            text_color = ft.Colors.WHITE
+        else:
+            bg_color = Theme.DARK_BG if is_dark else ft.Colors.GREY_200
+            text_color = Theme.DARK_TEXT if is_dark else ft.Colors.BLACK
+        
         return ft.Container(
-            content=ft.Text(text, color=ft.Colors.WHITE if is_user else ft.Colors.BLACK),
-            bgcolor=ft.Colors.BLUE if is_user else ft.Colors.GREY_200,
+            content=ft.Text(text, color=text_color),
+            bgcolor=bg_color,
             padding=15,
             border_radius=10,
             alignment=ft.alignment.center_right if is_user else ft.alignment.center_left

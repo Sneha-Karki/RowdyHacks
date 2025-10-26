@@ -4,6 +4,7 @@ import flet as ft
 from datetime import datetime
 from collections import defaultdict
 from ...services.api_client import APIClient
+from ..theme import Theme
 
 
 class InsightsPage(ft.Container):
@@ -20,7 +21,9 @@ class InsightsPage(ft.Container):
         # Build UI
         self.content = self.build_ui()
         self.expand = True
-        self.bgcolor = ft.Colors.WHITE
+        # Use theme-aware background
+        is_dark = page.is_dark_mode if hasattr(page, 'is_dark_mode') else False
+        self.bgcolor = Theme.DARK_SURFACE if is_dark else Theme.LIGHT_EARTH_BG
         self.padding = 30
         self.border_radius = 10
         
@@ -29,6 +32,9 @@ class InsightsPage(ft.Container):
     
     def build_ui(self):
         """Build the insights page UI"""
+        is_dark = self.page.is_dark_mode if hasattr(self.page, 'is_dark_mode') else False
+        text_color = Theme.DARK_TEXT if is_dark else Theme.NOIR
+        
         self.leaderboard_content = ft.Column(
             controls=[
                 ft.Row(
@@ -55,7 +61,7 @@ class InsightsPage(ft.Container):
                                     "🏆 Brand Leaderboard",
                                     size=32,
                                     weight=ft.FontWeight.BOLD,
-                                    color=ft.Colors.BLACK
+                                    color=text_color
                                 ),
                                 ft.Text(
                                     "Most popular brands • Ranked by consistency",
@@ -114,14 +120,18 @@ class InsightsPage(ft.Container):
     
     def update_leaderboard_display(self):
         """Update the leaderboard display"""
+        is_dark = self.page.is_dark_mode if hasattr(self.page, 'is_dark_mode') else False
+        text_color = Theme.DARK_TEXT if is_dark else Theme.NOIR
+        card_bg = Theme.DARK_SURFACE if is_dark else Theme.LIGHT_EARTH_BG
+        
         if not self.brand_totals:
             self.leaderboard_content.controls = [
                 ft.Container(
                     content=ft.Column(
                         controls=[
-                            ft.Icon(ft.Icons.LEADERBOARD, size=100, color=ft.Colors.GREY_400),
-                            ft.Text("No spending data yet", size=20, color=ft.Colors.GREY_600),
-                            ft.Text("Import transactions to see your brand leaderboard", size=14, color=ft.Colors.GREY_500)
+                            ft.Icon(ft.Icons.LEADERBOARD, size=100, color=Theme.DARK_TEXT if is_dark else ft.Colors.GREY_400),
+                            ft.Text("No spending data yet", size=20, color=text_color),
+                            ft.Text("Import transactions to see your brand leaderboard", size=14, color=Theme.DARK_TEXT if is_dark else ft.Colors.GREY_500)
                         ],
                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                         spacing=20
@@ -159,17 +169,17 @@ class InsightsPage(ft.Container):
                 
                 # Choose color based on rank
                 if rank == 1:
-                    rank_color = ft.Colors.AMBER_400
-                    bg_color = ft.Colors.AMBER_50
+                    rank_color = Theme.KHAKI if is_dark else ft.Colors.AMBER_400
+                    bg_color = Theme.DARK_BG if is_dark else Theme.LIGHT_KHAKI_BG
                 elif rank == 2:
-                    rank_color = ft.Colors.GREY_400
-                    bg_color = ft.Colors.GREY_50
+                    rank_color = Theme.WASABI if is_dark else ft.Colors.GREY_400
+                    bg_color = Theme.DARK_BG if is_dark else Theme.LIGHT_WASABI_BG
                 elif rank == 3:
-                    rank_color = ft.Colors.ORANGE_400
-                    bg_color = ft.Colors.ORANGE_50
+                    rank_color = Theme.EARTH if is_dark else ft.Colors.ORANGE_400
+                    bg_color = Theme.DARK_BG if is_dark else Theme.LIGHT_EARTH_BG
                 else:
-                    rank_color = ft.Colors.BLUE_400
-                    bg_color = ft.Colors.BLUE_50
+                    rank_color = Theme.EMERALD if is_dark else Theme.EMERALD
+                    bg_color = Theme.DARK_BG if is_dark else Theme.LIGHT_EMERALD_BG
                 
                 leaderboard_items.append(
                     self.create_leaderboard_item(
@@ -189,17 +199,17 @@ class InsightsPage(ft.Container):
                     self.create_promo_card(
                         "💰 Save 20% at Target",
                         "Use code SAVE20 at checkout",
-                        ft.Colors.RED_400
+                        Theme.MAPLE if is_dark else Theme.MAPLE
                     ),
                     self.create_promo_card(
                         "🎉 Amazon Prime Day",
                         "Exclusive deals detected!",
-                        ft.Colors.ORANGE_400
+                        Theme.KHAKI if is_dark else Theme.KHAKI
                     ),
                     self.create_promo_card(
                         "🔥 Flash Sale Alert",
                         "Walmart: 30% off groceries",
-                        ft.Colors.BLUE_400
+                        Theme.WASABI if is_dark else Theme.EARTH
                     ),
                 ],
                 spacing=20,
@@ -214,12 +224,12 @@ class InsightsPage(ft.Container):
                     "Most Consistent Brands",
                     size=24,
                     weight=ft.FontWeight.BOLD,
-                    color=ft.Colors.BLACK
+                    color=text_color
                 ),
                 ft.Text(
                     "Ranked by purchase frequency from 25 users",
                     size=14,
-                    color=ft.Colors.GREY_500
+                    color=Theme.DARK_TEXT if is_dark else ft.Colors.GREY_500
                 ),
                 ft.Container(height=10),
                 *leaderboard_items
@@ -229,6 +239,10 @@ class InsightsPage(ft.Container):
     
     def create_promo_card(self, title: str, subtitle: str, color):
         """Create a promotional/news card"""
+        is_dark = self.page.is_dark_mode if hasattr(self.page, 'is_dark_mode') else False
+        text_color = Theme.DARK_TEXT if is_dark else Theme.NOIR
+        card_bg = Theme.DARK_SURFACE if is_dark else Theme.LIGHT_KHAKI_BG
+        
         return ft.Container(
             content=ft.Column(
                 controls=[
@@ -236,20 +250,20 @@ class InsightsPage(ft.Container):
                         title,
                         size=16,
                         weight=ft.FontWeight.BOLD,
-                        color=ft.Colors.BLACK,
+                        color=text_color,
                         text_align=ft.TextAlign.CENTER
                     ),
                     ft.Text(
                         subtitle,
                         size=12,
-                        color=ft.Colors.GREY_600,
+                        color=Theme.DARK_TEXT if is_dark else ft.Colors.GREY_600,
                         text_align=ft.TextAlign.CENTER
                     )
                 ],
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 spacing=5
             ),
-            bgcolor=ft.Colors.with_opacity(0.1, color),
+            bgcolor=card_bg,
             padding=20,
             border_radius=10,
             width=250,
@@ -263,6 +277,9 @@ class InsightsPage(ft.Container):
     
     def create_leaderboard_item(self, rank_display: str, brand: str, amount: float, count: int, percentage: float, rank_color, bg_color):
         """Create a leaderboard item"""
+        is_dark = self.page.is_dark_mode if hasattr(self.page, 'is_dark_mode') else False
+        text_color = Theme.DARK_TEXT if is_dark else Theme.NOIR
+        
         return ft.Container(
             content=ft.Row(
                 controls=[
@@ -284,12 +301,12 @@ class InsightsPage(ft.Container):
                                 brand,
                                 size=18,
                                 weight=ft.FontWeight.BOLD,
-                                color=ft.Colors.BLACK
+                                color=text_color
                             ),
                             ft.Text(
                                 f"{count} transaction{'s' if count != 1 else ''}",
                                 size=12,
-                                color=ft.Colors.GREY_600
+                                color=Theme.DARK_TEXT if is_dark else ft.Colors.GREY_600
                             )
                         ],
                         spacing=2,

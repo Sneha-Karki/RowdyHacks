@@ -3,6 +3,7 @@
 import flet as ft
 from datetime import datetime
 from ...services.api_client import APIClient
+from ..theme import Theme
 
 
 class TransactionsPage(ft.Container):
@@ -19,7 +20,9 @@ class TransactionsPage(ft.Container):
         # Build UI
         self.content = self.build_ui()
         self.expand = True
-        self.bgcolor = ft.Colors.WHITE
+        # Use theme-aware background
+        is_dark = page.is_dark_mode if hasattr(page, 'is_dark_mode') else False
+        self.bgcolor = Theme.DARK_SURFACE if is_dark else Theme.LIGHT_EMERALD_BG
         self.padding = 20
         self.border_radius = 10
         
@@ -28,6 +31,9 @@ class TransactionsPage(ft.Container):
     
     def build_ui(self):
         """Build the transactions page UI"""
+        is_dark = self.page.is_dark_mode if hasattr(self.page, 'is_dark_mode') else False
+        text_color = Theme.DARK_TEXT if is_dark else Theme.NOIR
+        
         self.transactions_column = ft.Column(
             controls=[
                 ft.ProgressRing()
@@ -46,25 +52,29 @@ class TransactionsPage(ft.Container):
                             "All Transactions",
                             size=28,
                             weight=ft.FontWeight.BOLD,
-                            color=ft.Colors.BLACK
+                            color=text_color
                         ),
                         ft.Container(expand=True),
                         ft.ElevatedButton(
                             "Add Transaction",
                             icon=ft.Icons.ADD,
                             on_click=lambda e: self.show_add_transaction_dialog(),
-                            style=ft.ButtonStyle(bgcolor=ft.Colors.BLUE, color=ft.Colors.WHITE)
+                            style=ft.ButtonStyle(
+                                bgcolor=Theme.DARK_PRIMARY if is_dark else Theme.EMERALD,
+                                color=ft.Colors.WHITE
+                            )
                         ),
                         ft.Container(width=10),
                         ft.IconButton(
                             icon=ft.Icons.REFRESH,
                             tooltip="Refresh",
-                            on_click=lambda _: self.load_transactions()
+                            on_click=lambda _: self.load_transactions(),
+                            icon_color=text_color
                         )
                     ],
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN
                 ),
-                ft.Divider(),
+                ft.Divider(color=Theme.DARK_PRIMARY if is_dark else Theme.LIGHT_EMERALD),
                 # Transactions list
                 ft.Container(
                     content=self.transactions_column,
@@ -98,14 +108,18 @@ class TransactionsPage(ft.Container):
     
     def update_transactions_list(self):
         """Update the transactions list UI"""
+        is_dark = self.page.is_dark_mode if hasattr(self.page, 'is_dark_mode') else False
+        text_color = Theme.DARK_TEXT if is_dark else Theme.NOIR
+        card_bg = Theme.DARK_SURFACE if is_dark else Theme.LIGHT_WASABI_BG
+        
         if not self.transactions:
             self.transactions_column.controls = [
                 ft.Container(
                     content=ft.Column(
                         controls=[
-                            ft.Icon(ft.Icons.RECEIPT_LONG_OUTLINED, size=100, color=ft.Colors.GREY_400),
-                            ft.Text("No transactions yet", size=20, color=ft.Colors.GREY_600),
-                            ft.Text("Import CSV or connect your bank to get started", size=14, color=ft.Colors.GREY_500)
+                            ft.Icon(ft.Icons.RECEIPT_LONG_OUTLINED, size=100, color=Theme.DARK_TEXT if is_dark else ft.Colors.GREY_400),
+                            ft.Text("No transactions yet", size=20, color=text_color),
+                            ft.Text("Import CSV or connect your bank to get started", size=14, color=Theme.DARK_TEXT if is_dark else ft.Colors.GREY_500)
                         ],
                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                         spacing=20
@@ -120,7 +134,7 @@ class TransactionsPage(ft.Container):
             for txn in self.transactions:
                 amount_str = f"+${txn['amount']:,.2f}" if txn['transaction_type'] == 'income' else f"-${txn['amount']:,.2f}"
                 is_income = txn['transaction_type'] == 'income'
-                color = ft.Colors.GREEN if is_income else ft.Colors.RED
+                color = Theme.WASABI if is_income else Theme.MAPLE
                 
                 txn_date = datetime.fromisoformat(txn['transaction_date']) if isinstance(txn['transaction_date'], str) else txn['transaction_date']
                 
@@ -135,12 +149,12 @@ class TransactionsPage(ft.Container):
                                 ),
                                 ft.Column(
                                     controls=[
-                                        ft.Text(txn['description'], weight=ft.FontWeight.BOLD, size=16),
+                                        ft.Text(txn['description'], weight=ft.FontWeight.BOLD, size=16, color=text_color),
                                         ft.Row(
                                             controls=[
-                                                ft.Text(txn['category'], size=12, color=ft.Colors.GREY_600),
-                                                ft.Text("•", size=12, color=ft.Colors.GREY_400),
-                                                ft.Text(txn_date.strftime("%b %d, %Y"), size=12, color=ft.Colors.GREY_600)
+                                                ft.Text(txn['category'], size=12, color=Theme.DARK_TEXT if is_dark else ft.Colors.GREY_600),
+                                                ft.Text("•", size=12, color=Theme.DARK_TEXT if is_dark else ft.Colors.GREY_400),
+                                                ft.Text(txn_date.strftime("%b %d, %Y"), size=12, color=Theme.DARK_TEXT if is_dark else ft.Colors.GREY_600)
                                             ],
                                             spacing=5
                                         )
@@ -154,9 +168,9 @@ class TransactionsPage(ft.Container):
                             vertical_alignment=ft.CrossAxisAlignment.CENTER
                         ),
                         padding=15,
-                        border=ft.border.all(1, ft.Colors.GREY_200),
+                        border=ft.border.all(1, Theme.DARK_PRIMARY if is_dark else Theme.LIGHT_EMERALD),
                         border_radius=8,
-                        bgcolor=ft.Colors.WHITE,
+                        bgcolor=card_bg,
                         shadow=ft.BoxShadow(
                             spread_radius=0,
                             blur_radius=2,
@@ -228,7 +242,7 @@ class TransactionsPage(ft.Container):
             if not description_input.value or not amount_input.value or not category_dropdown.value:
                 self.page.snack_bar = ft.SnackBar(
                     content=ft.Text("❌ Please fill in all required fields"),
-                    bgcolor=ft.Colors.RED
+                    bgcolor=Theme.MAPLE
                 )
                 self.page.snack_bar.open = True
                 self.page.update()
@@ -272,7 +286,7 @@ class TransactionsPage(ft.Container):
                             # Show success message
                             self.page.snack_bar = ft.SnackBar(
                                 content=ft.Text(f"✅ Transaction added: {description_input.value}"),
-                                bgcolor=ft.Colors.GREEN
+                                bgcolor=Theme.WASABI if self.page.is_dark_mode else Theme.EMERALD
                             )
                             self.page.snack_bar.open = True
                             self.page.update()
@@ -286,7 +300,7 @@ class TransactionsPage(ft.Container):
                         else:
                             self.page.snack_bar = ft.SnackBar(
                                 content=ft.Text("❌ Failed to add transaction"),
-                                bgcolor=ft.Colors.RED
+                                bgcolor=Theme.MAPLE
                             )
                             self.page.snack_bar.open = True
                             self.page.update()
@@ -294,7 +308,7 @@ class TransactionsPage(ft.Container):
                     except Exception as ex:
                         self.page.snack_bar = ft.SnackBar(
                             content=ft.Text(f"❌ Error: {str(ex)}"),
-                            bgcolor=ft.Colors.RED
+                            bgcolor=Theme.MAPLE
                         )
                         self.page.snack_bar.open = True
                         self.page.update()
@@ -304,7 +318,7 @@ class TransactionsPage(ft.Container):
             except ValueError:
                 self.page.snack_bar = ft.SnackBar(
                     content=ft.Text("❌ Please enter a valid amount"),
-                    bgcolor=ft.Colors.RED
+                    bgcolor=Theme.MAPLE
                 )
                 self.page.snack_bar.open = True
                 self.page.update()
@@ -337,12 +351,12 @@ class TransactionsPage(ft.Container):
                         ft.Text(
                             "Fill in the form below to add a new transaction",
                             size=14,
-                            color=ft.Colors.GREY_700
+                            color=Theme.DARK_TEXT if self.page.is_dark_mode else Theme.NOIR
                         ),
                         ft.Text(
                             "* Required fields",
                             size=12,
-                            color=ft.Colors.RED_400,
+                            color=Theme.MAPLE,
                             italic=True
                         ),
                         ft.Container(height=10),
@@ -360,14 +374,14 @@ class TransactionsPage(ft.Container):
                                 ft.TextButton(
                                     "Cancel",
                                     on_click=close_bottom_sheet,
-                                    style=ft.ButtonStyle(color=ft.Colors.GREY_700)
+                                    style=ft.ButtonStyle(color=Theme.DARK_TEXT if self.page.is_dark_mode else Theme.NOIR)
                                 ),
                                 ft.ElevatedButton(
                                     "Add Transaction",
                                     icon=ft.Icons.ADD,
                                     on_click=save_transaction,
                                     style=ft.ButtonStyle(
-                                        bgcolor=ft.Colors.BLUE,
+                                        bgcolor=Theme.DARK_PRIMARY if self.page.is_dark_mode else Theme.EMERALD,
                                         color=ft.Colors.WHITE
                                     )
                                 )
