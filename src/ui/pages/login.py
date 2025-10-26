@@ -66,7 +66,7 @@ class LoginPage(ft.Container):
                                 "Budget Rodeo",
                                 size=40,
                                 weight=ft.FontWeight.BOLD,
-                                color=ft.Colors.BLUE
+                                color=ft.Colors.BLACK
                             ),
                             ft.Text(
                                 "Shooting for the Stars, Saving Your Bucks",
@@ -90,7 +90,7 @@ class LoginPage(ft.Container):
                                 height=50,
                                 on_click=self.handle_login,
                                 style=ft.ButtonStyle(
-                                    bgcolor=ft.Colors.BLUE,
+                                    bgcolor=ft.Colors.BLACK,
                                     color=ft.Colors.WHITE,
                                 )
                             ),
