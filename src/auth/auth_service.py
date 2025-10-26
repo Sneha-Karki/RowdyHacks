@@ -21,8 +21,11 @@ class AuthService:
                     Config.SUPABASE_URL,
                     Config.SUPABASE_KEY
                 )
+                print("Supabase connected successfully!")
             except Exception as e:
                 print(f"Failed to initialize Supabase: {e}")
+        else:
+            print("Supabase credentials not found in .env file. Running in demo mode.")
     
     async def sign_up(self, email: str, password: str) -> tuple[bool, str]:
         """
