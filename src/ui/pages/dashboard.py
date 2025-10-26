@@ -2,6 +2,8 @@
 
 import flet as ft
 from datetime import datetime
+from src.ui.components.randy_pet import RandyPet
+from src.ui.pages.randy_page import RandyPage
 from ...services.api_client import APIClient
 
 
@@ -55,6 +57,11 @@ class DashboardPage(ft.Container):
                     icon=ft.Icons.DASHBOARD_OUTLINED,
                     selected_icon=ft.Icons.DASHBOARD,
                     label="Overview"
+                ),
+                ft.NavigationRailDestination(
+                    icon=ft.Icons.PETS_OUTLINED,
+                    selected_icon=ft.Icons.PETS,
+                    label="Randy"
                 ),
                 ft.NavigationRailDestination(
                     icon=ft.Icons.RECEIPT_LONG_OUTLINED,
@@ -171,6 +178,7 @@ class DashboardPage(ft.Container):
     
     def build_overview(self):
         """Build overview dashboard"""
+        # Summary cards
         balance_card = self.create_stat_card(
             "Total Balance",
             f"${self.balance:,.2f}",
@@ -359,15 +367,18 @@ class DashboardPage(ft.Container):
         """Switch between different views"""
         views = {
             0: "overview",
-            1: "transactions",
-            2: "budgets",
-            3: "insights"
+            1: "randy",
+            2: "transactions",
+            3: "budgets",
+            4: "insights"
         }
         
         self.current_view = views.get(index, "overview")
         
         if self.current_view == "overview":
             self.content_area.content = self.build_overview()
+        elif self.current_view == "randy":
+            self.content_area.content = RandyPage(self.page, self.auth_service)
         else:
             self.content_area.content = ft.Container(
                 content=ft.Column(
