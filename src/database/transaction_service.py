@@ -18,7 +18,10 @@ class TransactionService:
         """Initialize Supabase connection"""
         if Config.is_configured():
             from supabase import create_client
-            self.supabase = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
+            # Use service_role key if available (bypasses RLS), otherwise use anon key
+            api_key = Config.SUPABASE_SERVICE_KEY if Config.SUPABASE_SERVICE_KEY else Config.SUPABASE_KEY
+            self.supabase = create_client(Config.SUPABASE_URL, api_key)
+            print(f"✅ Transaction service initialized with {'service_role' if Config.SUPABASE_SERVICE_KEY else 'anon'} key")
     
     async def get_user_transactions(self, user_id: str, limit: int = 10) -> List[Dict]:
         """Get recent transactions for a user"""
