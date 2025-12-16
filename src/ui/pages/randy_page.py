@@ -54,7 +54,7 @@ class RandyPage(ft.Container):
             "Randy's Room 🏠",
             size=32,
             weight=ft.FontWeight.BOLD,
-            color=ft.Colors.BLUE
+            color="#424242"
         )
         
         # Randy container with more space
@@ -75,7 +75,7 @@ class RandyPage(ft.Container):
                         "Chat with Randy 💬",
                         size=24,
                         weight=ft.FontWeight.BOLD,
-                        color=ft.Colors.BLUE
+                        color="#424242"
                     ),
                     self.chat_view,
                     ft.Row(
@@ -83,7 +83,7 @@ class RandyPage(ft.Container):
                             self.chat_input,
                             ft.IconButton(
                                 icon=ft.Icons.SEND_ROUNDED,
-                                icon_color=ft.Colors.BLUE,
+                                icon_color="#424242",
                                 on_click=self.send_message
                             )
                         ],
@@ -109,7 +109,7 @@ class RandyPage(ft.Container):
                         "About Randy 🐍",
                         size=24,
                         weight=ft.FontWeight.BOLD,
-                        color=ft.Colors.BLUE
+                        color="#424242"
                     ),
                     ft.Text(
                         "• Randy is your personal finance companion",
@@ -169,7 +169,7 @@ class RandyPage(ft.Container):
         """Create a chat message bubble"""
         return ft.Container(
             content=ft.Text(text, color=ft.Colors.WHITE if is_user else ft.Colors.BLACK),
-            bgcolor=ft.Colors.BLUE if is_user else ft.Colors.GREY_200,
+            bgcolor="#424242" if is_user else ft.Colors.GREY_200,
             padding=15,
             border_radius=10,
             alignment=ft.alignment.center_right if is_user else ft.alignment.center_left
@@ -222,7 +222,7 @@ class RandyPage(ft.Container):
         loading = ft.Container(
             content=ft.Row([
                 ft.ProgressRing(width=16, height=16, stroke_width=2),
-                ft.Text("Randy is thinking...", size=12, color=ft.Colors.BLUE),
+                ft.Text("Randy is thinking...", size=12, color="#424242"),
             ], spacing=10),
             padding=10,
         )
