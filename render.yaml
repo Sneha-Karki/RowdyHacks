@@ -23,3 +23,24 @@ services:
         sync: false
       - key: PLAID_ENV
         value: sandbox
+  
+  # Flet Web App Service
+  - type: web
+    name: budget-buddy-web
+    env: python
+    region: oregon
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: API_BASE_URL
+        value: https://budget-buddy-api.onrender.com
+      - key: PLAID_CLIENT_ID
+        sync: false
+      - key: PLAID_SECRET
+        sync: false

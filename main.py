@@ -98,11 +98,16 @@ class BudgetBuddyApp:
 
 def main():
     """Application entry point"""
+    import os
     app = BudgetBuddyApp()
+    
+    # Check if running on Render (web deployment)
+    port = int(os.getenv("PORT", 8550))
+    
     ft.app(
         target=app.main, 
         view=ft.WEB_BROWSER,
-        port=8550,
+        port=port,
         assets_dir="assets"
     )
 
