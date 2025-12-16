@@ -218,21 +218,21 @@ class RandyPage(ft.Container):
         greetings = ["hi", "hello", "hey"]
         feelings = ["how are you", "how do you feel"]
         finance_questions = ["budget", "money", "spending", "save"]
-        
+
         message = message.lower()
-        
+
         # Handle greetings
         if any(greeting in message for greeting in greetings):
             return "Hi there! I'm Randy, your friendly finance snake! 🐍 How can I help you today?"
-            
+
         # Handle feelings
         if any(feeling in message for feeling in feelings):
             return "I'm feeling great! Ready to help you with your finances! Want to check your budget? 📊"
-            
+
         # Handle finance questions
         if any(topic in message for topic in finance_questions):
             return "I'd love to help you with your finances! Let's look at your spending habits and find ways to save money. 💰 What specific aspect would you like to focus on?"
-            
+
         # Default response with financial wisdom
         responses = [
             "Remember, tracking your expenses is the first step to financial freedom! 📝",
