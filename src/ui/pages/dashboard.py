@@ -516,8 +516,10 @@ class DashboardPage(ft.Container):
                     if hasattr(self.auth_service.current_user, 'id'):
                         user_id = self.auth_service.current_user.id
                 
-                # Use the sample CSV file
-                sample_path = "C:/dev/BudgetingSoftware/assets/data/sample_transactions.csv"
+                # Use the sample CSV file (relative path from project root)
+                from pathlib import Path
+                project_root = Path(__file__).parent.parent.parent.parent
+                sample_path = str(project_root / "assets" / "data" / "sample_transactions.csv")
                 print(f"🔵 Loading sample data from {sample_path}")
                 
                 result = await self.api_client.upload_csv(sample_path, user_id)
@@ -585,7 +587,9 @@ class DashboardPage(ft.Container):
         # WORKAROUND: If path is None, use sample CSV directly
         if not file_path:
             print("⚠️ File path is None, using sample CSV as workaround")
-            file_path = "C:/dev/BudgetingSoftware/assets/data/sample_transactions.csv"
+            from pathlib import Path
+            project_root = Path(__file__).parent.parent.parent.parent
+            file_path = str(project_root / "assets" / "data" / "sample_transactions.csv")
             
             # Ask user if they want to proceed with sample data
             self.page.snack_bar = ft.SnackBar(

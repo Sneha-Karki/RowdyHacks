@@ -39,7 +39,9 @@ async def root():
     return {
         "status": "online",
         "app": "Budget Buddy API",
-        "supabase_configured": Config.is_configured()
+        "supabase_configured": Config.is_configured(),
+        "plaid_configured": bool(Config.PLAID_CLIENT_ID and Config.PLAID_SECRET),
+        "plaid_client_initialized": plaid_service.client is not None
     }
 
 
@@ -249,7 +251,10 @@ async def get_summary(user_id: str = "demo"):
 if __name__ == "__main__":
     import uvicorn
     print("Starting Budget Buddy API...")
-    print("API will be available at: http://localhost:8000")
-    print("API docs at: http://localhost:8000/docs")
-    port = int(os.environ.get("PORT", 8000))
+    
+    # Get port from environment variable (for Render deployment)
+    port = int(os.getenv("PORT", 8000))
+    
+    print(f"API will be available at: http://0.0.0.0:{port}")
+    print(f"API docs at: http://0.0.0.0:{port}/docs")
     uvicorn.run(app, host="0.0.0.0", port=port)
