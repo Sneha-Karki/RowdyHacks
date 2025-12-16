@@ -149,7 +149,7 @@
             
             showStatus('loading', '⏳ Saving your bank connection...');
             
-            fetch(`http://localhost:8000/api/plaid/exchange-token`, {
+            fetch(window.location.origin + '/api/plaid/exchange-token', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
