@@ -1,0 +1,6 @@
+date,description,amount,type,category
+2025-12-01,Acme Salary,18000.00,credit,Salary
+2025-12-05,Coffee,-4.50,debit,Food
+2025-12-10,Groceries,-120.00,debit,Groceries
+2025-12-12,Internet,-60.00,debit,Utilities
+2025-12-15,Transfer,-2000.00,debit,Savings

@@ -17,6 +17,10 @@ from src.database.transaction_service import TransactionService
 from src.services.plaid_service import PlaidService
 from src.utils.config import Config
 
+from src.services.ai_insights import AIInsightsService
+
+ai_service = AIInsightsService()
+
 app = FastAPI(title="Budget Rodeo API", version="1.0.0")
 
 # CORS middleware (allows Flet to call API)
@@ -248,6 +252,19 @@ async def get_summary(user_id: str = "demo"):
         print(f"Get Summary Error: {e}")
         raise HTTPException(500, str(e))
 
+@app.get("/api/ai-insights")
+async def ai_insights(user_id: str):
+    """Generate AI-powered financial insights for the user."""
+    try:
+        transactions = await transaction_service.get_user_transactions(user_id, limit=500)
+        insights = ai_service.analyze_spending(transactions)
+        return {"success": True, "insights": insights}
+    except Exception as e:
+        # Return a structured JSON error so the frontend can handle it gracefully
+        print(f"AI Insights Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
 
 if __name__ == "__main__":
     import uvicorn

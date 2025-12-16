@@ -1,5 +1,6 @@
 """API Client for communicating with FastAPI backend"""
 
+import os
 import requests
 from typing import Dict, List, Optional, BinaryIO
 from datetime import datetime
@@ -8,9 +9,17 @@ from datetime import datetime
 class APIClient:
     """Client for Budget Buddy FastAPI backend"""
     
-    def __init__(self, base_url: str = "http://localhost:8000"):
-        """Initialize API client"""
-        self.base_url = base_url
+    def __init__(self, base_url: str = None):
+        """Initialize API client
+
+        By default the client will read the API base URL from the environment
+        variable API_BASE_URL. If that isn't set, it falls back to
+        http://localhost:8000 for local development.
+        """
+        if base_url:
+            self.base_url = base_url
+        else:
+            self.base_url = os.getenv("API_BASE_URL", "http://localhost:8000")
         self.session = requests.Session()
     
     def health_check(self) -> bool:
@@ -41,7 +50,7 @@ class APIClient:
                     f"{self.base_url}/api/csv/upload",
                     files=files,
                     params=params,
-                    timeout=30
+                    timeout=60
                 )
                 
                 if response.status_code == 200:
@@ -171,3 +180,19 @@ class APIClient:
                 'balance': 0,
                 'summary': {'income': 0, 'expenses': 0, 'savings': 0, 'savings_rate': 0}
             }
+
+    async def get_ai_insights(self, user_id):
+        url = f"{self.base_url}/api/ai-insights?user_id={user_id}"
+        return await self._get(url)
+
+    async def _get(self, url: str) -> Dict:
+        """Internal helper to perform GET requests and return parsed JSON."""
+        try:
+            # AI calls can take longer; increase timeout to accommodate model latency
+            response = self.session.get(url, timeout=60)
+            if response.status_code == 200:
+                return response.json()
+            else:
+                return {"success": False, "error": f"API returned {response.status_code}: {response.text}"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}

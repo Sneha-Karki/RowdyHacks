@@ -1,5 +1,6 @@
 ﻿"""Dashboard page - main app interface"""
 
+import json
 import flet as ft
 from datetime import datetime
 from src.ui.components.randy_pet import RandyPet
@@ -31,6 +32,7 @@ class DashboardPage(ft.Container):
         self.balance = 0.0
         self.monthly_summary = {}
         self.transactions = []
+        self.ai_insights_text = ""
         
         # Build UI
         self.content = self.build_ui()
@@ -218,6 +220,22 @@ class DashboardPage(ft.Container):
             print(f"📊 Balance: ${self.balance}, Monthly: {self.monthly_summary}")
             self.transactions = await self.api_client.get_transactions(user_id, 10)
             print(f"📊 Loaded {len(self.transactions)} transactions")
+            # Show a brief dashboard summary in the UI (snackbar) so the user
+            # sees the loaded data without needing to read terminal logs.
+            try:
+                income = self.monthly_summary.get('income', 0)
+                expenses = self.monthly_summary.get('expenses', 0)
+                summary_msg = (
+                    f"Balance: ${self.balance:,.2f} • "
+                    f"Income: ${income:,.2f} • Expenses: ${expenses:,.2f} • "
+                    f"Transactions loaded: {len(self.transactions)}"
+                )
+                self.page.snack_bar = ft.SnackBar(content=ft.Text(summary_msg), duration=6000)
+                self.page.snack_bar.open = True
+                self.page.update()
+            except Exception:
+                # If UI update fails for any reason, fall back to logs only
+                pass
             self.update_overview_data()
         
         self.page.run_task(load_data)
@@ -351,6 +369,7 @@ class DashboardPage(ft.Container):
                         "AI Insights",
                         icon=ft.Icons.AUTO_AWESOME,
                         width=200,
+                        on_click=self.on_ai_insights_click,
                         style=ft.ButtonStyle(
                             bgcolor=Theme.EARTH if is_dark else ft.Colors.PURPLE, 
                             color=ft.Colors.WHITE
@@ -365,6 +384,23 @@ class DashboardPage(ft.Container):
             border_radius=10,
             border=ft.border.all(1, Theme.DARK_PRIMARY if is_dark else Theme.LIGHT_EMERALD),
             shadow=ft.BoxShadow(blur_radius=10, color=ft.Colors.with_opacity(0.1, ft.Colors.BLACK))
+        )
+
+        # AI Insights card (shows last generated insights)
+        insights_preview = self.ai_insights_text if self.ai_insights_text else "No insights yet. Click 'AI Insights' to generate."
+        insights_card = ft.Container(
+            content=ft.Column(
+                controls=[
+                    ft.Row(controls=[ft.Icon(ft.Icons.AUTO_AWESOME, color=ft.Colors.PURPLE), ft.Text("AI Insights", weight=ft.FontWeight.BOLD)]),
+                    ft.Divider(),
+                    ft.Text(insights_preview, size=14),
+                ],
+                spacing=8
+            ),
+            bgcolor=card_bg,
+            padding=20,
+            border_radius=10,
+            expand=True
         )
         
         return ft.Column(
@@ -382,7 +418,9 @@ class DashboardPage(ft.Container):
                     ],
                     spacing=20,
                     expand=True
-                )
+                ),
+                ft.Container(height=20),
+                insights_card
             ],
             scroll=ft.ScrollMode.AUTO,
             expand=True
@@ -816,3 +854,72 @@ class DashboardPage(ft.Container):
         """Handle logout"""
         await self.auth_service.sign_out()
         self.page.go("/")
+
+    def on_ai_insights_click(self, e):
+        # Provide immediate feedback and logging so clicks are visible in logs
+        print("🔎 AI Insights button clicked")
+        # Show a loading snackbar immediately so user sees action
+        self.page.snack_bar = ft.SnackBar(content=ft.Text("Loading AI insights..."), duration=2000)
+        self.page.snack_bar.open = True
+        self.page.update()
+
+        async def load_insights():
+            try:
+                user_id = "demo"
+                if self.auth_service.supabase and hasattr(self.auth_service, "current_user"):
+                    if hasattr(self.auth_service.current_user, "id"):
+                        user_id = self.auth_service.current_user.id
+
+                # Call backend
+                result = await self.api_client.get_ai_insights(user_id)
+
+                # result should be a dict like {"success": True, "insights": "..."}
+                if not isinstance(result, dict):
+                    raise Exception(f"Invalid response from AI endpoint: {result}")
+
+                if not result.get("success"):
+                    err = result.get("error", "AI endpoint returned an error")
+                    raise Exception(err)
+
+                # Show insights in a dialog. Use a local close handler to avoid signature issues.
+                insights_text = result.get("insights", "No insights available")
+
+                # Store insights for dashboard card and log a short preview
+                self.ai_insights_text = insights_text
+                # Refresh overview so the AI Insights card updates
+                self.update_overview_data()
+                print(f"AI result (preview): {insights_text[:200]}")
+                preview = (insights_text[:200] + "...") if len(insights_text) > 200 else insights_text
+                self.page.snack_bar = ft.SnackBar(content=ft.Text(preview), duration=4000)
+                self.page.snack_bar.open = True
+                self.page.update()
+
+                def _close_ai_dialog(e):
+                    dialog.open = False
+                    self.page.update()
+
+                dialog = ft.AlertDialog(
+                    title=ft.Text("AI Insights"),
+                    content=ft.Container(content=ft.Text(insights_text), width=600),
+                    actions=[ft.TextButton("Close", on_click=_close_ai_dialog)],
+                    modal=True
+                )
+                self.page.dialog = dialog
+                dialog.open = True
+                self.page.update()
+
+            except Exception as ex:
+                print(f"AI Insights Error: {ex}")
+                self.page.snack_bar = ft.SnackBar(
+                    content=ft.Text("Failed to load AI insights"),
+                    bgcolor=ft.Colors.RED,
+                )
+                self.page.snack_bar.open = True
+                self.page.update()
+
+        self.page.run_task(load_insights)
+
+def close_dialog(self, dialog):
+    dialog.open = False
+    self.page.update()
+
