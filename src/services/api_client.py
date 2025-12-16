@@ -1,5 +1,6 @@
 """API Client for communicating with FastAPI backend"""
 
+import os
 import requests
 from typing import Dict, List, Optional, BinaryIO
 from datetime import datetime
@@ -8,9 +9,13 @@ from datetime import datetime
 class APIClient:
     """Client for Budget Buddy FastAPI backend"""
     
-    def __init__(self, base_url: str = "http://localhost:8000"):
+    def __init__(self, base_url: str = None):
         """Initialize API client"""
-        self.base_url = base_url
+        # Allow overriding via environment variable API_BASE_URL (useful on Render)
+        if base_url:
+            self.base_url = base_url
+        else:
+            self.base_url = os.getenv("API_BASE_URL", "http://localhost:8000")
         self.session = requests.Session()
     
     def health_check(self) -> bool:

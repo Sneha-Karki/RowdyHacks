@@ -687,19 +687,24 @@ class DashboardPage(ft.Container):
             
             if link_token:
                 # Open Plaid Link in browser via API endpoint
-                import webbrowser
-                
                 # Get user ID
                 user_id = 'demo'
                 if self.auth_service.supabase and hasattr(self.auth_service, 'current_user'):
                     if hasattr(self.auth_service.current_user, 'id'):
                         user_id = self.auth_service.current_user.id
                 
-                # Build URL through API
-                plaid_url = f"http://localhost:8000/plaid-link?link_token={link_token}&user_id={user_id}"
+                # Build URL through API using the API client's base_url so it works when hosted
+                api_base = self.api_client.base_url.rstrip('/')
+                plaid_url = f"{api_base}/plaid-link?link_token={link_token}&user_id={user_id}"
                 
                 print(f"✅ Opening Plaid Link: {plaid_url}")
-                webbrowser.open(plaid_url)
+                # Use Flet's launch_url so the link opens in the user's browser when hosted
+                try:
+                    self.page.launch_url(plaid_url)
+                except Exception:
+                    # Fallback to webbrowser for local desktop scenarios
+                    import webbrowser
+                    webbrowser.open(plaid_url)
                 
                 # Show success message
                 self.page.snack_bar = ft.SnackBar(
