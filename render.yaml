@@ -1,11 +1,11 @@
 services:
-  # FastAPI Backend Service
+  # Complete Budget Buddy App - Runs both Flet UI and API
   - type: web
-    name: budget-buddy-api
+    name: big-shot
     env: python
     region: oregon
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn api:app --host 0.0.0.0 --port $PORT
+    startCommand: python start_app.py
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -23,24 +23,5 @@ services:
         sync: false
       - key: PLAID_ENV
         value: sandbox
-  
-  # Flet Web App Service
-  - type: web
-    name: budget-buddy-web
-    env: python
-    region: oregon
-    buildCommand: pip install -r requirements.txt
-    startCommand: python main.py
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.0
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_KEY
-        sync: false
       - key: API_BASE_URL
-        value: https://budget-buddy-api.onrender.com
-      - key: PLAID_CLIENT_ID
-        sync: false
-      - key: PLAID_SECRET
-        sync: false
+        value: http://localhost:8000
