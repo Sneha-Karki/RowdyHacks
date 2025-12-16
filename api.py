@@ -251,4 +251,5 @@ if __name__ == "__main__":
     print("Starting Budget Buddy API...")
     print("API will be available at: http://localhost:8000")
     print("API docs at: http://localhost:8000/docs")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
