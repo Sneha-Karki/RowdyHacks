@@ -79,8 +79,8 @@ class PlaidService:
             traceback.print_exc()
             return None
     
-    async def exchange_public_token(self, public_token: str) -> Optional[str]:
-        """Exchange public token for access token"""
+    async def exchange_public_token(self, public_token: str) -> Optional[Dict]:
+        """Exchange public token for access token and item_id"""
         if not self.client:
             return None
         
@@ -89,9 +89,15 @@ class PlaidService:
             
             request = ItemPublicTokenExchangeRequest(public_token=public_token)
             response = self.client.item_public_token_exchange(request)
-            return response['access_token']
+            
+            return {
+                'access_token': response['access_token'],
+                'item_id': response['item_id']
+            }
         except Exception as e:
             print(f"Error exchanging token: {e}")
+            import traceback
+            traceback.print_exc()
             return None
     
     async def get_transactions(self, access_token: str, start_date: datetime, 

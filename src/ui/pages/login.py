@@ -1,7 +1,7 @@
 """Login page"""
 
 import flet as ft
-
+from src.ui.theme import Theme
 
 class LoginPage(ft.Container):
     """Login page with email/password authentication"""
@@ -29,7 +29,7 @@ class LoginPage(ft.Container):
         
         self.error_text = ft.Text(
             value="",
-            color=ft.Colors.RED,
+            color=Theme.MAPLE,
             size=12,
             visible=False
         )
@@ -37,9 +37,16 @@ class LoginPage(ft.Container):
         # Build UI
         self.content = self.build_ui()
         self.expand = True
+        # Set background based on theme
+        is_dark = page.is_dark_mode if page and hasattr(page, 'is_dark_mode') else False
+        self.bgcolor = Theme.DARK_SURFACE if is_dark else Theme.LIGHT_EMERALD_BG
     
     def build_ui(self):
         """Build the login UI"""
+        is_dark = self.page.is_dark_mode if self.page and hasattr(self.page, 'is_dark_mode') else False
+        text_color = Theme.DARK_TEXT if is_dark else Theme.NOIR
+        card_bg = Theme.DARK_SURFACE if is_dark else ft.Colors.WHITE
+        
         return ft.Stack(
             controls=[
                 # Background image
@@ -56,29 +63,29 @@ class LoginPage(ft.Container):
                             content=ft.Column(
                         controls=[
                             # Header
-                            ft.Container(height=50),
+                            ft.Container(height=10),
                             ft.Image(
                                 src="logo.png",
-                                width=80,
-                                height=80,
+                                width=300,
+                                height=300,
                                 fit=ft.ImageFit.CONTAIN,
                             ),
                             ft.Text(
-                                "Budget Buddy",
+                                "Big $hot",
                                 size=40,
                                 weight=ft.FontWeight.BOLD,
-                                color=ft.Colors.BLUE
+                                color=text_color
                             ),
                             ft.Text(
-                                "Your Personal Finance Manager",
+                                "Shooting for the Stars, Saving Your Bucks",
                                 size=16,
-                                color=ft.Colors.GREY_700
+                                color=text_color
                             ),
                             ft.Container(height=40),
                             
                             # Login form
                             self.email_field,
-                            ft.Container(height=10),
+                            ft.Container(height=5),
                             self.password_field,
                             ft.Container(height=5),
                             self.error_text,
@@ -91,7 +98,7 @@ class LoginPage(ft.Container):
                                 height=50,
                                 on_click=self.handle_login,
                                 style=ft.ButtonStyle(
-                                    bgcolor=ft.Colors.BLUE,
+                                    bgcolor=Theme.DARK_PRIMARY if is_dark else Theme.EMERALD,
                                     color=ft.Colors.WHITE,
                                 )
                             ),
@@ -101,10 +108,16 @@ class LoginPage(ft.Container):
                             # Sign up link
                             ft.Row(
                                 controls=[
-                                    ft.Text("Don't have an account?"),
+                                    ft.Text(
+                                        "Don't have an account?",
+                                        size=20,
+                                        weight=ft.FontWeight.W_500,
+                                        color=text_color
+                                    ),
                                     ft.TextButton(
                                         "Sign Up",
-                                        on_click=lambda _: self.page.go("/signup")
+                                        on_click=lambda _: self.page.go("/signup"),
+                                        style=ft.ButtonStyle(color=Theme.DARK_PRIMARY if is_dark else Theme.EMERALD)
                                     )
                                 ],
                                 alignment=ft.MainAxisAlignment.CENTER
@@ -112,30 +125,6 @@ class LoginPage(ft.Container):
                             
                             # Demo mode info
                             ft.Container(height=40),
-                            ft.Container(
-                                content=ft.Column(
-                                    controls=[
-                                        ft.Text(
-                                            "🚀 Hackathon Demo Mode",
-                                            size=14,
-                                            weight=ft.FontWeight.BOLD,
-                                            color=ft.Colors.ORANGE
-                                        ),
-                                        ft.Text(
-                                            "Configure .env with Supabase credentials for full features",
-                                            size=12,
-                                            color=ft.Colors.GREY_600,
-                                            text_align=ft.TextAlign.CENTER
-                                        )
-                                    ],
-                                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                    spacing=5
-                                ),
-                                padding=15,
-                                bgcolor=ft.Colors.ORANGE_50,
-                                border_radius=10,
-                                width=350
-                            )
                         ],
                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                         spacing=0

@@ -1,56 +1,88 @@
 """Sign up page"""
 
 import flet as ft
+from src.ui.theme import Theme
 
 
 class SignupPage(ft.Container):
     """Sign up page for new user registration"""
-    
+
     def __init__(self, page: ft.Page, auth_service):
         super().__init__()
         self.page = page
         self.auth_service = auth_service
         
-        # Form fields
+        is_dark = page.is_dark_mode if page and hasattr(page, 'is_dark_mode') else False
+        text_color = Theme.DARK_TEXT if is_dark else Theme.NOIR
+        field_bg = Theme.DARK_SURFACE if is_dark else ft.Colors.WHITE
+
         self.email_field = ft.TextField(
             label="Email",
             width=300,
             keyboard_type=ft.KeyboardType.EMAIL,
             prefix_icon=ft.Icons.EMAIL,
+            color=text_color,
+            bgcolor=field_bg,
+            border_radius=5,
         )
-        
+
         self.password_field = ft.TextField(
             label="Password",
             width=300,
             password=True,
             can_reveal_password=True,
             prefix_icon=ft.Icons.LOCK,
+            color=text_color,
+            bgcolor=field_bg,
+            border_radius=5,
         )
-        
+
         self.confirm_password_field = ft.TextField(
             label="Confirm Password",
             width=300,
             password=True,
             can_reveal_password=True,
             prefix_icon=ft.Icons.LOCK,
+            color=text_color,
+            bgcolor=field_bg,
+            border_radius=5,
         )
-        
+
+
         self.error_text = ft.Text(
             value="",
-            color=ft.Colors.RED,
+            color=Theme.MAPLE,
             size=12,
             visible=False
         )
-        
+
         # Build UI
         self.content = self.build_ui()
         self.expand = True
-    
+        # Set background based on theme
+        self.bgcolor = Theme.DARK_SURFACE if is_dark else Theme.LIGHT_EMERALD_BG
+
     def build_ui(self):
-        """Build the signup UI"""
-        return ft.Column(
+        is_dark = self.page.is_dark_mode if self.page and hasattr(self.page, 'is_dark_mode') else False
+        text_color = Theme.DARK_TEXT if is_dark else ft.Colors.WHITE
+        
+        return ft.Stack(
             controls=[
-                ft.Container(
+                # Full-page background image
+                ft.Container(ft.Image(
+                        src="signupbg.png",
+                        width=float("inf"),
+                        height=float("inf"),
+                        fit=ft.ImageFit.COVER,   # fills the container fully, cropping if needed
+                        expand=True
+                    ),
+                    #alignment=ft.alignment.center,  # centers the image
+                )
+,
+
+                # Foreground content container with right shift
+                ft.Container(  # move form slightly to the right
+                    alignment=ft.alignment.center,
                     content=ft.Column(
                         controls=[
                             # Back button
@@ -62,26 +94,27 @@ class SignupPage(ft.Container):
                                 alignment=ft.alignment.top_left,
                                 padding=20
                             ),
-                            
+
                             # Header
-                            ft.Icon(
-                                name=ft.Icons.ACCOUNT_CIRCLE,
-                                size=80,
-                                color=ft.Colors.GREEN
-                            ),
-                            ft.Text(
-                                "Create Account",
-                                size=36,
-                                weight=ft.FontWeight.BOLD,
-                                color=ft.Colors.GREEN
-                            ),
-                            ft.Text(
-                                "Join Budget Buddy today",
-                                size=16,
-                                color=ft.Colors.GREY_700
-                            ),
-                            ft.Container(height=30),
+                            ft.Image(
+                            src="logo.png",
+                            width=200,
+                            height=200,
+                            fit=ft.ImageFit.CONTAIN,
+                        ),
+                        ft.Text(
+                            "Create Account",
+                            size=36,
+                            weight=ft.FontWeight.BOLD,
+                            color=text_color
+                        ),
+                        ft.Text(
+                            "Join Big $hot today",
+                            size=16,
+                            color=text_color
+                        ),
                             
+
                             # Signup form
                             self.email_field,
                             ft.Container(height=10),
@@ -91,7 +124,7 @@ class SignupPage(ft.Container):
                             ft.Container(height=5),
                             self.error_text,
                             ft.Container(height=20),
-                            
+
                             # Signup button
                             ft.ElevatedButton(
                                 "Create Account",
@@ -103,68 +136,74 @@ class SignupPage(ft.Container):
                                     color=ft.Colors.WHITE,
                                 )
                             ),
-                            
+
                             ft.Container(height=20),
-                            
+
                             # Login link
                             ft.Row(
                                 controls=[
-                                    ft.Text("Already have an account?"),
+                                    ft.Text("Already have an account?", 
+                                            color=ft.Colors.WHITE
+                                            ),
+                                    
                                     ft.TextButton(
                                         "Sign In",
-                                        on_click=lambda _: self.page.go("/")
+                                        on_click=lambda _: self.page.go("/"),
+                                        style=ft.ButtonStyle(
+                                            text_style=ft.TextStyle(
+                                                size=15,
+                                                color=ft.Colors.WHITE,
+                                                weight=ft.FontWeight.BOLD
+                                            )
+                                        )
                                     )
                                 ],
                                 alignment=ft.MainAxisAlignment.CENTER
                             ),
                         ],
                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                        spacing=0
-                    ),
-                    alignment=ft.alignment.center
+                        spacing=10
+                    )
                 )
-            ],
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            alignment=ft.MainAxisAlignment.CENTER,
-            expand=True
+            ]
         )
-    
+
     async def handle_signup(self, e):
         """Handle signup button click"""
         email = self.email_field.value
         password = self.password_field.value
         confirm = self.confirm_password_field.value
-        
+
         # Validation
         if not email or not password or not confirm:
             self.show_error("Please fill in all fields")
             return
-        
+
         if password != confirm:
             self.show_error("Passwords do not match")
             return
-        
+
         if len(password) < 6:
             self.show_error("Password must be at least 6 characters")
             return
-        
+
         # Attempt signup
         success, message = await self.auth_service.sign_up(email, password)
-        
+
         if success:
             # Show success message
             self.page.snack_bar = ft.SnackBar(
                 content=ft.Text(message),
-                bgcolor=ft.Colors.GREEN
+                bgcolor="#008000"
             )
             self.page.snack_bar.open = True
             self.page.update()
-            
+
             # Redirect to login
             self.page.go("/")
         else:
             self.show_error(message)
-    
+
     def show_error(self, message: str):
         """Display error message"""
         self.error_text.value = message

@@ -17,7 +17,7 @@ from src.database.transaction_service import TransactionService
 from src.services.plaid_service import PlaidService
 from src.utils.config import Config
 
-app = FastAPI(title="Budget Buddy API", version="1.0.0")
+app = FastAPI(title="Budget Rodeo API", version="1.0.0")
 
 # CORS middleware (allows Flet to call API)
 app.add_middleware(
@@ -46,7 +46,13 @@ async def root():
 @app.get("/plaid-link")
 async def serve_plaid_link():
     """Serve Plaid Link HTML page"""
-    html_path = os.path.join(os.getcwd(), 'assets', 'plaid_link.html')
+    # Get the directory where api.py is located
+    api_dir = os.path.dirname(os.path.abspath(__file__))
+    html_path = os.path.join(api_dir, 'assets', 'plaid_link.html')
+    
+    if not os.path.exists(html_path):
+        raise HTTPException(404, f"Plaid Link HTML not found at {html_path}")
+    
     return FileResponse(html_path, media_type="text/html")
 
 
@@ -62,8 +68,8 @@ async def upload_csv(file: UploadFile = File(...), user_id: str = "demo"):
         contents = await file.read()
         df = pd.read_csv(io.BytesIO(contents))
         
-        print(f"📊 Received CSV with {len(df)} rows")
-        print(f"📋 Columns: {list(df.columns)}")
+        print(f"Received CSV with {len(df)} rows")
+        print(f"Columns: {list(df.columns)}")
         
         # Validate required columns
         required_cols = ['date', 'description', 'amount', 'type', 'category']
@@ -75,6 +81,8 @@ async def upload_csv(file: UploadFile = File(...), user_id: str = "demo"):
         imported = 0
         skipped = 0
         errors = []
+        
+        print(f"📊 Processing {len(df)} rows...")
         
         for index, row in df.iterrows():
             try:
@@ -90,6 +98,8 @@ async def upload_csv(file: UploadFile = File(...), user_id: str = "demo"):
                 except:
                     date = datetime.now()
                 
+                print(f"  Row {index+1}: {row['description'][:30]}... ${amount} ({txn_type})")
+                
                 # Add transaction
                 success = await transaction_service.add_transaction(
                     user_id=user_id,  # Use the logged-in user ID
@@ -102,23 +112,28 @@ async def upload_csv(file: UploadFile = File(...), user_id: str = "demo"):
                 
                 if success:
                     imported += 1
+                    print(f"  ✅ Imported")
                 else:
                     skipped += 1
+                    print(f"  ⚠️ Skipped (add_transaction returned False)")
                     
             except Exception as e:
                 skipped += 1
                 errors.append(f"Row {index + 2}: {str(e)}")
+        
+        print(f"📊 Import complete: {imported} imported, {skipped} skipped/duplicates")
         
         return {
             "success": True,
             "imported": imported,
             "skipped": skipped,
             "total": len(df),
+            "message": f"Imported {imported} new transactions, skipped {skipped} duplicates",
             "errors": errors[:5]  # Return first 5 errors
         }
         
     except Exception as e:
-        print(f"❌ CSV Upload Error: {e}")
+        print(f"CSV Upload Error: {e}")
         raise HTTPException(500, f"Failed to process CSV: {str(e)}")
 
 
@@ -137,26 +152,68 @@ async def create_plaid_link_token(user_id: str = "demo"):
             raise HTTPException(500, "Failed to create Plaid link token")
             
     except Exception as e:
-        print(f"❌ Plaid Error: {e}")
+        print(f"Plaid Error: {e}")
         raise HTTPException(500, str(e))
 
 
 @app.post("/api/plaid/exchange-token")
-async def exchange_plaid_token(public_token: str):
-    """Exchange Plaid public token for access token"""
+async def exchange_plaid_token(request: dict):
+    """Exchange Plaid public token for access token and save it"""
     try:
-        access_token = await plaid_service.exchange_public_token(public_token)
+        public_token = request.get('public_token')
+        user_id = request.get('user_id', 'demo')
+        institution_name = request.get('institution_name', 'Unknown Bank')
         
-        if access_token:
-            return {
-                "success": True,
-                "access_token": access_token
-            }
-        else:
+        if not public_token:
+            raise HTTPException(400, "Missing public_token in request body")
+        
+        print(f"🔄 Exchanging public token: {public_token[:20]}... for user {user_id[:8]}...")
+        
+        # Exchange token with Plaid
+        exchange_response = await plaid_service.exchange_public_token(public_token)
+        
+        if not exchange_response:
+            print(f"❌ Token exchange returned None")
             raise HTTPException(500, "Failed to exchange token")
-            
+        
+        access_token = exchange_response.get('access_token')
+        item_id = exchange_response.get('item_id', 'unknown')
+        
+        print(f"✅ Token exchanged successfully! Item ID: {item_id}")
+        
+        # Save to database
+        if transaction_service.supabase:
+            try:
+                plaid_data = {
+                    'user_id': user_id,
+                    'access_token': access_token,
+                    'item_id': item_id,
+                    'institution_name': institution_name,
+                    'last_synced_at': datetime.now().isoformat()
+                }
+                
+                result = transaction_service.supabase.table('plaid_items').insert(plaid_data).execute()
+                print(f"💾 Saved Plaid connection to database!")
+                
+                # Optionally: Sync transactions immediately
+                print(f"🔄 Syncing transactions from Plaid...")
+                synced_count = await plaid_service.sync_transactions(access_token, user_id, transaction_service)
+                print(f"✅ Synced {synced_count} transactions from Plaid!")
+                
+            except Exception as db_error:
+                print(f"⚠️ Warning: Could not save to database: {db_error}")
+        
+        return {
+            "success": True,
+            "access_token": access_token,
+            "item_id": item_id,
+            "synced_transactions": synced_count if 'synced_count' in locals() else 0
+        }
+        
     except Exception as e:
         print(f"❌ Plaid Token Exchange Error: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(500, str(e))
 
 
@@ -170,7 +227,7 @@ async def get_transactions(user_id: str = "demo", limit: int = 10):
             "transactions": transactions
         }
     except Exception as e:
-        print(f"❌ Get Transactions Error: {e}")
+        print(f"Get Transactions Error: {e}")
         raise HTTPException(500, str(e))
 
 
@@ -188,13 +245,13 @@ async def get_summary(user_id: str = "demo"):
             "summary": summary
         }
     except Exception as e:
-        print(f"❌ Get Summary Error: {e}")
+        print(f"Get Summary Error: {e}")
         raise HTTPException(500, str(e))
 
 
 if __name__ == "__main__":
     import uvicorn
-    print("🚀 Starting Budget Buddy API...")
-    print("📍 API will be available at: http://localhost:8000")
-    print("📚 API docs at: http://localhost:8000/docs")
+    print("Starting Budget Buddy API...")
+    print("API will be available at: http://localhost:8000")
+    print("API docs at: http://localhost:8000/docs")
     uvicorn.run(app, host="0.0.0.0", port=8000)

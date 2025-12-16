@@ -1,0 +1,17 @@
+date,description,amount,type,category
+2025-12-01,Monthly Salary,4500.0,income,Salary
+2025-12-02,Rent Payment,-1200.0,expense,Housing
+2025-12-03,Grocery Store - Walmart,-156.32,expense,Food
+2025-12-04,Electric Bill,-89.45,expense,Utilities
+2025-12-05,Water Bill,-45.2,expense,Utilities
+2025-12-06,Gas Station,-52.0,expense,Transportation
+2025-12-07,Starbucks Coffee,-8.75,expense,Food
+2025-12-08,Target - Household Items,-234.56,expense,Shopping
+2025-12-09,Netflix Subscription,-15.99,expense,Entertainment
+2025-12-10,Spotify Premium,-10.99,expense,Entertainment
+2025-12-11,Chipotle Lunch,-12.5,expense,Food
+2025-12-12,Gym Membership,-45.0,expense,Health
+2025-12-13,Freelance Project Payment,850.0,income,Freelance
+2025-12-14,Car Insurance,-125.0,expense,Transportation
+2025-12-15,Grocery Store - Whole Foods,-98.45,expense,Food
+2025-12-16,Amazon - Books,-45.99,expense,Shopping

@@ -18,6 +18,7 @@ class Config:
     # Supabase
     SUPABASE_URL = os.getenv("SUPABASE_URL", "")
     SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+    SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
     
     # AI Services
     CLAUDE_API_KEY = os.getenv("CLAUDE_API_KEY", "")
