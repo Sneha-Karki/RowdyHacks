@@ -19,7 +19,7 @@ numpy>=1.26.0
 
 # AI/LLM Integration
 anthropic>=0.34.0  # Claude API
-# openai>=1.0.0  # Alternative: OpenAI
+openai>=1.0.0  # OpenAI API
 
 # CSV & Data Handling
 python-dateutil>=2.8.0

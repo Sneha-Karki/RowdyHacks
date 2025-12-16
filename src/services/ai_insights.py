@@ -1,13 +1,13 @@
-"""AI-powered insights using Claude or local LLM"""
+"""AI-powered insights using OpenAI or local LLM"""
 
 from typing import List, Dict, Any, Optional
 from src.utils.config import Config
 
 try:
-    from anthropic import Anthropic
-    ANTHROPIC_AVAILABLE = True
+    from openai import OpenAI
+    OPENAI_AVAILABLE = True
 except ImportError:
-    ANTHROPIC_AVAILABLE = False
+    OPENAI_AVAILABLE = False
 
 
 class AIInsightsService:
@@ -15,11 +15,12 @@ class AIInsightsService:
     
     def __init__(self):
         self.client = None
-        if ANTHROPIC_AVAILABLE and Config.CLAUDE_API_KEY:
+        if OPENAI_AVAILABLE and Config.OPENAI_API_KEY:
             try:
-                self.client = Anthropic(api_key=Config.CLAUDE_API_KEY)
-            except:
-                pass
+                self.client = OpenAI(api_key=Config.OPENAI_API_KEY)
+                print("✅ AI Insights service initialized with OpenAI")
+            except Exception as e:
+                print(f"⚠️ Failed to initialize OpenAI: {e}")
     
     def analyze_spending(self, transactions: List[Dict[str, Any]]) -> str:
         """
@@ -38,8 +39,8 @@ class AIInsightsService:
             # Prepare transaction summary for AI
             summary = self._prepare_transaction_summary(transactions)
             
-            message = self.client.messages.create(
-                model="claude-3-5-sonnet-20241022",
+            response = self.client.chat.completions.create(
+                model="gpt-4o-mini",
                 max_tokens=1024,
                 messages=[{
                     "role": "user",
@@ -57,9 +58,10 @@ Keep it concise and actionable."""
                 }]
             )
             
-            return message.content[0].text
+            return response.choices[0].message.content
             
         except Exception as e:
+            print(f"❌ AI Insights Error: {e}")
             return f"AI analysis unavailable: {str(e)}"
     
     def _prepare_transaction_summary(self, transactions: List[Dict[str, Any]]) -> str:
@@ -128,6 +130,6 @@ Keep it concise and actionable."""
 • Transaction Count: {len(transactions)}
 • Average Transaction: ${(total_expenses / len(transactions)) if transactions else 0:.2f}
 
-⚠️ Note: Enable Claude API in .env for AI-powered insights!
+⚠️ Note: Enable OpenAI API in .env for AI-powered insights!
 """
         return insights

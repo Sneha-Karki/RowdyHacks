@@ -2,7 +2,8 @@
 
 import flet as ft
 from src.ui.components.randy_pet import RandyPet
-from src.services.ai_insights import AIInsightsService
+from src.services.ai_chat import AIChatService
+from src.services.api_client import APIClient
 from src.ui.theme import Theme
 
 class RandyPage(ft.Container):
@@ -12,8 +13,10 @@ class RandyPage(ft.Container):
         super().__init__()
         self.page = page
         self.auth_service = auth_service
-        self.ai_service = AIInsightsService()
-        self.messages = []
+        self.ai_chat_service = AIChatService()
+        self.api_client = APIClient()
+        self.conversation_history = []
+        self.user_context = {}
         
         # Initialize chat components
         is_dark = page.is_dark_mode if page and hasattr(page, 'is_dark_mode') else False
@@ -41,6 +44,14 @@ class RandyPage(ft.Container):
         # Use theme-aware background
         is_dark = page.is_dark_mode if page and hasattr(page, 'is_dark_mode') else False
         self.bgcolor = Theme.DARK_SURFACE if is_dark else "#FAF6E9"  # Light cream background
+        
+        # Load user financial context
+        self.load_user_context()
+        
+        # Add welcome message
+        welcome_msg = "Hi there! I'm Randy, your friendly financial advisor snake! 🐍 Ask me anything about budgeting, saving, or managing your money!"
+        welcome_bubble = self.create_message_bubble(welcome_msg, is_user=False)
+        self.chat_view.controls.append(welcome_bubble)
     
     def build_ui(self):
         """Build Randy's page UI"""
@@ -195,51 +206,94 @@ class RandyPage(ft.Container):
             alignment=ft.alignment.center_right if is_user else ft.alignment.center_left
         )
     
-    def send_message(self, e):
-        """Handle sending a message"""
-        if not self.chat_input.value:
-            return
-            
-        # Add user message
-        user_message = self.create_message_bubble(self.chat_input.value, True)
-        self.chat_view.controls.append(user_message)
+    def load_user_context(self):
+        """Load user's financial context for personalized AI responses"""
+        async def load_context():
+            try:
+                user_id = 'demo'
+                if self.auth_service and hasattr(self.auth_service, 'current_user'):
+                    user_id = str(self.auth_service.current_user)
+                
+                summary_data = await self.api_client.get_summary(user_id)
+                self.user_context = {
+                    'balance': summary_data.get('balance', 0),
+                    'income': summary_data.get('summary', {}).get('income', 0),
+                    'expenses': summary_data.get('summary', {}).get('expenses', 0),
+                    'savings_rate': summary_data.get('summary', {}).get('savings_rate', 0)
+                }
+            except Exception as e:
+                print(f"⚠️ Could not load user context: {e}")
+                self.user_context = {}
         
-        # Get Randy's response
-        response = self.get_randy_response(self.chat_input.value)
-        randy_message = self.create_message_bubble(response, False)
-        self.chat_view.controls.append(randy_message)
-        
-        # Clear input and update
-        self.chat_input.value = ""
-        self.update()
+        if self.page:
+            self.page.run_task(load_context)
     
-    def get_randy_response(self, message: str) -> str:
-        """Get Randy's response to a message"""
-        greetings = ["hi", "hello", "hey"]
-        feelings = ["how are you", "how do you feel"]
-        finance_questions = ["budget", "money", "spending", "save"]
-
-        message = message.lower()
-
-        # Handle greetings
-        if any(greeting in message for greeting in greetings):
-            return "Hi there! I'm Randy, your friendly finance snake! 🐍 How can I help you today?"
-
-        # Handle feelings
-        if any(feeling in message for feeling in feelings):
-            return "I'm feeling great! Ready to help you with your finances! Want to check your budget? 📊"
-
-        # Handle finance questions
-        if any(topic in message for topic in finance_questions):
-            return "I'd love to help you with your finances! Let's look at your spending habits and find ways to save money. 💰 What specific aspect would you like to focus on?"
-
-        # Default response with financial wisdom
-        responses = [
-            "Remember, tracking your expenses is the first step to financial freedom! 📝",
-            "Want to know a secret? Small savings add up to big results over time! 🌱",
-            "I'm here to help you reach your financial goals! What would you like to know? 🎯",
-            "Let's work together to improve your financial health! 💪",
-            "Have you checked your budget today? It's always a good time to review! 📊"
-        ]
-        import random
-        return random.choice(responses)
+    def send_message(self, e):
+        """Handle sending a message with AI response"""
+        if not self.chat_input.value or not self.chat_input.value.strip():
+            return
+        
+        user_message = self.chat_input.value.strip()
+        self.chat_input.value = ""
+        if self.page:
+            self.page.update()
+        
+        # Add user message to chat
+        user_bubble = self.create_message_bubble(user_message, is_user=True)
+        self.chat_view.controls.append(user_bubble)
+        self.update()
+        
+        # Add to conversation history
+        self.conversation_history.append({
+            "role": "user",
+            "content": user_message
+        })
+        
+        # Show loading indicator
+        loading = ft.Container(
+            content=ft.Row([
+                ft.ProgressRing(width=16, height=16, stroke_width=2),
+                ft.Text("Randy is thinking...", size=12, color=Theme.DARK_PRIMARY),
+            ], spacing=10),
+            padding=10,
+        )
+        self.chat_view.controls.append(loading)
+        self.update()
+        
+        # Get AI response asynchronously
+        async def get_response():
+            try:
+                response = await self.ai_chat_service.chat(
+                    user_message,
+                    conversation_history=self.conversation_history.copy(),
+                    user_context=self.user_context
+                )
+                
+                # Remove loading indicator
+                if loading in self.chat_view.controls:
+                    self.chat_view.controls.remove(loading)
+                
+                # Add Randy's response
+                randy_bubble = self.create_message_bubble(response, is_user=False)
+                self.chat_view.controls.append(randy_bubble)
+                
+                # Add to conversation history
+                self.conversation_history.append({
+                    "role": "assistant",
+                    "content": response
+                })
+                
+                self.update()
+            except Exception as e:
+                print(f"❌ Error getting AI response: {e}")
+                # Remove loading indicator
+                if loading in self.chat_view.controls:
+                    self.chat_view.controls.remove(loading)
+                
+                error_msg = "Oops! I'm having trouble connecting right now. Make sure you have your CLAUDE_API_KEY set in the .env file! 🐍"
+                error_bubble = self.create_message_bubble(error_msg, is_user=False)
+                self.chat_view.controls.append(error_bubble)
+                self.update()
+        
+        if self.page:
+            self.page.run_task(get_response)
