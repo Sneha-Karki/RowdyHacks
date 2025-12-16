@@ -4,7 +4,6 @@ import flet as ft
 from src.ui.components.randy_pet import RandyPet
 from src.services.ai_chat import AIChatService
 from src.services.api_client import APIClient
-from src.ui.theme import Theme
 
 class RandyPage(ft.Container):
     """A dedicated page for Randy with more interactions"""
@@ -43,7 +42,7 @@ class RandyPage(ft.Container):
         self.expand = True
         # Use theme-aware background
         is_dark = page.is_dark_mode if page and hasattr(page, 'is_dark_mode') else False
-        self.bgcolor = Theme.DARK_SURFACE if is_dark else "#FAF6E9"  # Light cream background
+        self.bgcolor = "#2C2C2C" if is_dark else "#FAF6E9"  # Light cream background
         
         # Load user financial context
         self.load_user_context()
@@ -67,7 +66,7 @@ class RandyPage(ft.Container):
             "Randy's Room 🏠",
             size=32,
             weight=ft.FontWeight.BOLD,
-            color=text_color
+            color="#424242"
         )
         
         # Randy container with more space
@@ -89,7 +88,7 @@ class RandyPage(ft.Container):
                         "Chat with Randy 💬",
                         size=24,
                         weight=ft.FontWeight.BOLD,
-                        color=text_color
+                        color="#424242"
                     ),
                     self.chat_view,
                     ft.Row(
@@ -97,7 +96,7 @@ class RandyPage(ft.Container):
                             self.chat_input,
                             ft.IconButton(
                                 icon=ft.Icons.SEND_ROUNDED,
-                                icon_color=accent_color,
+                                icon_color="#424242",
                                 on_click=self.send_message
                             )
                         ],
@@ -124,7 +123,7 @@ class RandyPage(ft.Container):
                         "About Randy 🐍",
                         size=24,
                         weight=ft.FontWeight.BOLD,
-                        color=text_color
+                        color="#424242"
                     ),
                     ft.Text(
                         "• Randy is your personal finance companion",
@@ -199,8 +198,8 @@ class RandyPage(ft.Container):
             text_color = Theme.DARK_TEXT if is_dark else Theme.NOIR  # Dark text in light mode
         
         return ft.Container(
-            content=ft.Text(text, color=text_color),
-            bgcolor=bg_color,
+            content=ft.Text(text, color=ft.Colors.WHITE if is_user else ft.Colors.BLACK),
+            bgcolor="#424242" if is_user else ft.Colors.GREY_200,
             padding=15,
             border_radius=10,
             alignment=ft.alignment.center_right if is_user else ft.alignment.center_left
@@ -253,7 +252,7 @@ class RandyPage(ft.Container):
         loading = ft.Container(
             content=ft.Row([
                 ft.ProgressRing(width=16, height=16, stroke_width=2),
-                ft.Text("Randy is thinking...", size=12, color=Theme.DARK_PRIMARY),
+                ft.Text("Randy is thinking...", size=12, color="#424242"),
             ], spacing=10),
             padding=10,
         )
