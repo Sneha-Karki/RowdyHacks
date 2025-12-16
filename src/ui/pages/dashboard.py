@@ -210,10 +210,14 @@ class DashboardPage(ft.Container):
                 else:
                     user_id = str(self.auth_service.current_user)
             
+            print(f"📊 Loading dashboard data for user: {user_id}")
             summary_data = await self.api_client.get_summary(user_id)
+            print(f"📊 Summary data: {summary_data}")
             self.balance = summary_data['balance']
             self.monthly_summary = summary_data['summary']
+            print(f"📊 Balance: ${self.balance}, Monthly: {self.monthly_summary}")
             self.transactions = await self.api_client.get_transactions(user_id, 10)
+            print(f"📊 Loaded {len(self.transactions)} transactions")
             self.update_overview_data()
         
         self.page.run_task(load_data)
@@ -621,17 +625,67 @@ class DashboardPage(ft.Container):
                     
                     self.load_dashboard_data()
                     
-                    message = f"✅ Imported {imported} transactions!"
-                    if skipped > 0:
-                        message += f" ({skipped} skipped)"
-                    
-                    self.page.snack_bar = ft.SnackBar(
-                        content=ft.Text(message),
-                        bgcolor=Theme.WASABI if self.page.is_dark_mode else Theme.EMERALD,
-                        duration=3000
-                    )
-                    self.page.snack_bar.open = True
-                    self.page.update()
+                    # Show alert dialog if all transactions were duplicates
+                    if imported == 0 and skipped > 0:
+                        def close_dialog(e):
+                            duplicate_dialog.open = False
+                            self.page.update()
+                        
+                        duplicate_dialog = ft.AlertDialog(
+                            modal=True,
+                            title=ft.Row([
+                                ft.Icon(ft.Icons.WARNING_AMBER_ROUNDED, color=ft.Colors.ORANGE, size=30),
+                                ft.Text("Duplicate Transactions Detected", size=20, weight=ft.FontWeight.BOLD)
+                            ]),
+                            content=ft.Container(
+                                content=ft.Column([
+                                    ft.Text(
+                                        "You already uploaded these transactions!",
+                                        size=18,
+                                        weight=ft.FontWeight.BOLD,
+                                        color=ft.Colors.ORANGE
+                                    ),
+                                    ft.Divider(),
+                                    ft.Text(
+                                        f"All {skipped} transactions in this CSV file already exist in your database.",
+                                        size=16
+                                    ),
+                                    ft.Text(
+                                        "No new transactions were added.",
+                                        size=14,
+                                        italic=True,
+                                        color=ft.Colors.GREY_700
+                                    )
+                                ], spacing=10),
+                                padding=10
+                            ),
+                            actions=[
+                                ft.TextButton(
+                                    "Got it!",
+                                    on_click=close_dialog,
+                                    style=ft.ButtonStyle(
+                                        color=ft.Colors.WHITE,
+                                        bgcolor=ft.Colors.ORANGE
+                                    )
+                                )
+                            ],
+                            actions_alignment=ft.MainAxisAlignment.END,
+                        )
+                        self.page.dialog = duplicate_dialog
+                        duplicate_dialog.open = True
+                        self.page.update()
+                    else:
+                        message = f"Imported {imported} transactions!"
+                        if skipped > 0:
+                            message += f" ({skipped} duplicates skipped)"
+                        
+                        self.page.snack_bar = ft.SnackBar(
+                            content=ft.Text(message),
+                            bgcolor=Theme.WASABI if self.page.is_dark_mode else Theme.EMERALD,
+                            duration=3000
+                        )
+                        self.page.snack_bar.open = True
+                        self.page.update()
                 else:
                     error = result.get('error', 'Unknown error')
                     print(f"❌ API Error: {error}")

@@ -102,13 +102,13 @@ class BudgetsPage(ft.Container):
                         ft.Column(
                             controls=[
                                 ft.Text(
-                                    "Monthly Budget Breakdown",
+                                    "Yearly Budget Breakdown",
                                     size=32,
                                     weight=ft.FontWeight.BOLD,
                                     color=text_color
                                 ),
                                 ft.Text(
-                                    f"{datetime.now().strftime('%B %Y')}",
+                                    f"{datetime.now().year}",
                                     size=14,
                                     color=ft.Colors.GREY_600
                                 )
@@ -154,25 +154,26 @@ class BudgetsPage(ft.Container):
             # Get all transactions
             self.transactions = await self.api_client.get_transactions(user_id, 1000)
             
-            # Get current month/year for filtering
+            # Get current year for filtering
             now = datetime.now()
-            current_month = now.month
             current_year = now.year
             
-            # Calculate totals by category (only expenses from current month)
+            # Calculate totals by category (expenses from current year)
             category_totals = defaultdict(float)
             for txn in self.transactions:
                 if txn['transaction_type'] == 'expense':
                     # Parse transaction date
                     txn_date = datetime.fromisoformat(txn['transaction_date']) if isinstance(txn['transaction_date'], str) else txn['transaction_date']
                     
-                    # Only include current month transactions
-                    if txn_date.month == current_month and txn_date.year == current_year:
+                    # Only include current year transactions
+                    if txn_date.year == current_year:
                         category = txn.get('category', 'Other')
                         category_totals[category] += txn['amount']
             
             self.category_totals = dict(category_totals)
-            self.update_budget_display()
+            # Only update if the control is attached to the page
+            if self.budget_content.page:
+                self.update_budget_display()
         
         self.page.run_task(fetch_data)
     
@@ -195,6 +196,9 @@ class BudgetsPage(ft.Container):
                     expand=True
                 )
             ]
+            # Only update if attached to page
+            if self.budget_content.page:
+                self.budget_content.update()
         else:
             # Calculate total spending
             total_spending = sum(self.category_totals.values())
@@ -289,7 +293,9 @@ class BudgetsPage(ft.Container):
                 *oval_rows
             ]
         
-        self.budget_content.update()
+        # Only update if attached to page
+        if self.budget_content.page:
+            self.budget_content.update()
     
     def create_category_oval(self, category: str, amount: float, percentage: float, color, icon):
         """Create an oval card for a category"""

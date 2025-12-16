@@ -18,7 +18,9 @@ class TransactionService:
         """Initialize Supabase connection"""
         if Config.is_configured():
             from supabase import create_client
-            self.supabase = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
+            # Use service role key for backend operations to bypass RLS
+            service_key = Config.SUPABASE_SERVICE_KEY if hasattr(Config, 'SUPABASE_SERVICE_KEY') and Config.SUPABASE_SERVICE_KEY else Config.SUPABASE_KEY
+            self.supabase = create_client(Config.SUPABASE_URL, service_key)
     
     async def get_user_transactions(self, user_id: str, limit: int = 10) -> List[Dict]:
         """Get recent transactions for a user"""
@@ -54,7 +56,7 @@ class TransactionService:
             
             # Get all transactions for the month
             response = self.supabase.table('transactions')\
-                .select('amount, transaction_type')\
+                .select('amount, transaction_type, transaction_date')\
                 .eq('user_id', user_id)\
                 .gte('transaction_date', f'{year}-{month:02d}-01')\
                 .lt('transaction_date', f'{next_year}-{next_month:02d}-01')\
@@ -62,8 +64,23 @@ class TransactionService:
             
             transactions = response.data if response.data else []
             
+            print(f"📊 Found {len(transactions)} transactions for {year}-{month:02d}")
+            
             income = sum(t['amount'] for t in transactions if t['transaction_type'] == 'income')
             expenses = sum(t['amount'] for t in transactions if t['transaction_type'] == 'expense')
+            
+            # If no data for current month, get all-time data
+            if income == 0 and expenses == 0:
+                print(f"⚠️ No transactions in {year}-{month:02d}, fetching all-time data...")
+                all_response = self.supabase.table('transactions')\
+                    .select('amount, transaction_type')\
+                    .eq('user_id', user_id)\
+                    .execute()
+                
+                all_transactions = all_response.data if all_response.data else []
+                income = sum(t['amount'] for t in all_transactions if t['transaction_type'] == 'income')
+                expenses = sum(t['amount'] for t in all_transactions if t['transaction_type'] == 'expense')
+                print(f"📊 All-time: Income=${income}, Expenses=${expenses}")
             
             return {
                 'income': income,
@@ -100,15 +117,42 @@ class TransactionService:
             print(f"Error calculating balance: {e}")
             return 0.0
     
+    async def check_duplicate(self, user_id: str, amount: float, 
+                            description: str, date: datetime) -> bool:
+        """Check if a transaction already exists (to avoid duplicates)"""
+        if not self.supabase:
+            return False
+        
+        try:
+            # Check for transaction with same user, amount, description, and date
+            response = self.supabase.table('transactions')\
+                .select('id')\
+                .eq('user_id', user_id)\
+                .eq('amount', amount)\
+                .eq('description', description)\
+                .eq('transaction_date', date.isoformat())\
+                .execute()
+            
+            return len(response.data) > 0
+        except Exception as e:
+            print(f"Error checking duplicate: {e}")
+            return False
+    
     async def add_transaction(self, user_id: str, amount: float, 
                             transaction_type: str, category: str, 
                             description: str, date: datetime) -> bool:
-        """Add a new transaction"""
+        """Add a new transaction (with duplicate detection)"""
         if not self.supabase:
             print("❌ Error: Supabase not configured")
             return False
         
         try:
+            # Check for duplicates first
+            is_duplicate = await self.check_duplicate(user_id, amount, description, date)
+            if is_duplicate:
+                print(f"⚠️ Duplicate skipped: {description[:30]}...")
+                return False
+            
             data = {
                 'user_id': user_id,
                 'amount': amount,

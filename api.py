@@ -121,11 +121,14 @@ async def upload_csv(file: UploadFile = File(...), user_id: str = "demo"):
                 skipped += 1
                 errors.append(f"Row {index + 2}: {str(e)}")
         
+        print(f"📊 Import complete: {imported} imported, {skipped} skipped/duplicates")
+        
         return {
             "success": True,
             "imported": imported,
             "skipped": skipped,
             "total": len(df),
+            "message": f"Imported {imported} new transactions, skipped {skipped} duplicates",
             "errors": errors[:5]  # Return first 5 errors
         }
         
