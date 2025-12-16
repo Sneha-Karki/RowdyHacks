@@ -50,7 +50,8 @@ Keep it concise, friendly, and actionable.
                 response = self.client.chat.completions.create(
                     model=model_name,
                     messages=[
-                        {"role": "system", "content": "You are a financial assistant that provides professional, friendly, and actionable insights. Use approachable language and advanced vocabulary when appropriate. Avoid markdown formatting."}
+                        {"role": "system", "content": "You are a financial assistant that provides professional, friendly, and actionable insights. "
+                        " Be precise and use percentages. Use approachable language and advanced vocabulary when appropriate. Avoid markdown formatting."}
                     ] + examples + [{"role": "user", "content": prompt}],
                     temperature=0.8,
                     max_tokens=700
