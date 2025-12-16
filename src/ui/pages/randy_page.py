@@ -4,7 +4,6 @@ import flet as ft
 from src.ui.components.randy_pet import RandyPet
 from src.services.ai_chat import AIChatService
 from src.services.api_client import APIClient
-from src.ui.theme import Theme
 
 class RandyPage(ft.Container):
     """A dedicated page for Randy with more interactions"""
@@ -38,7 +37,7 @@ class RandyPage(ft.Container):
         self.expand = True
         # Use theme-aware background
         is_dark = page.is_dark_mode if page and hasattr(page, 'is_dark_mode') else False
-        self.bgcolor = Theme.DARK_SURFACE if is_dark else "#FAF6E9"  # Light cream background
+        self.bgcolor = "#2C2C2C" if is_dark else "#FAF6E9"  # Light cream background
         
         # Load user financial context
         self.load_user_context()
@@ -223,7 +222,7 @@ class RandyPage(ft.Container):
         loading = ft.Container(
             content=ft.Row([
                 ft.ProgressRing(width=16, height=16, stroke_width=2),
-                ft.Text("Randy is thinking...", size=12, color=Theme.DARK_PRIMARY),
+                ft.Text("Randy is thinking...", size=12, color=ft.Colors.BLUE),
             ], spacing=10),
             padding=10,
         )
