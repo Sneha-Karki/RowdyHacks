@@ -71,44 +71,92 @@ class DashboardPage(ft.Container):
         app_bar_bg = Theme.DARK_SURFACE if is_dark else ft.Colors.WHITE
         text_color = Theme.DARK_TEXT if is_dark else Theme.NOIR
         
+        # Initialize visible pages if not set
+        if not hasattr(self.page, 'visible_pages'):
+            self.page.visible_pages = {
+                'overview': True,
+                'randy': True,
+                'budgets': True,
+                'leaderboard': True
+            }
+        
+        # Build navigation destinations based on visibility
+        destinations = []
+        if self.page.visible_pages.get('overview', True):
+            destinations.append(ft.NavigationRailDestination(
+                icon=ft.Icons.DASHBOARD_OUTLINED,
+                selected_icon=ft.Icons.DASHBOARD,
+                label="Overview"
+            ))
+        if self.page.visible_pages.get('randy', True):
+            destinations.append(ft.NavigationRailDestination(
+                icon=ft.Icons.PETS_OUTLINED,
+                selected_icon=ft.Icons.PETS,
+                label="Randy"
+            ))
+        if self.page.visible_pages.get('budgets', True):
+            destinations.append(ft.NavigationRailDestination(
+                icon=ft.Icons.CATEGORY_OUTLINED,
+                selected_icon=ft.Icons.CATEGORY,
+                label="Budgets"
+            ))
+        if self.page.visible_pages.get('leaderboard', True):
+            destinations.append(ft.NavigationRailDestination(
+                icon=ft.Icons.LEADERBOARD_OUTLINED,
+                selected_icon=ft.Icons.LEADERBOARD,
+                label="Leaderboard"
+            ))
+        
+        # Calculate selected index based on current view and visible pages
+        view_to_page = {
+            'overview': 'overview',
+            'randy': 'randy',
+            'budgets': 'budgets',
+            'insights': 'leaderboard'
+        }
+        
+        # Default to no selection for non-nav pages (settings, profile, transactions)
+        selected_index = None
+        
+        # Only set selected index if we're on a nav rail page
+        if self.current_view in view_to_page:
+            current_page_key = view_to_page[self.current_view]
+            
+            # Find the index in visible destinations
+            visible_keys = []
+            if self.page.visible_pages.get('overview', True):
+                visible_keys.append('overview')
+            if self.page.visible_pages.get('randy', True):
+                visible_keys.append('randy')
+            if self.page.visible_pages.get('budgets', True):
+                visible_keys.append('budgets')
+            if self.page.visible_pages.get('leaderboard', True):
+                visible_keys.append('leaderboard')
+            
+            if current_page_key in visible_keys:
+                selected_index = visible_keys.index(current_page_key)
+            else:
+                # Current page is hidden, default to first visible
+                selected_index = 0 if visible_keys else None
+        
         # Navigation rail
-        nav_rail = ft.NavigationRail(
-            selected_index=0,
+        self.nav_rail = ft.NavigationRail(
+            selected_index=selected_index if selected_index is not None else 0,
             label_type=ft.NavigationRailLabelType.ALL,
             min_width=100,
             min_extended_width=200,
-            destinations=[
-                ft.NavigationRailDestination(
-                    icon=ft.Icons.DASHBOARD_OUTLINED,
-                    selected_icon=ft.Icons.DASHBOARD,
-                    label="Overview"
-                ),
-                ft.NavigationRailDestination(
-                    icon=ft.Icons.PETS_OUTLINED,
-                    selected_icon=ft.Icons.PETS,
-                    label="Randy"
-                ),
-                ft.NavigationRailDestination(
-                    icon=ft.Icons.CATEGORY_OUTLINED,
-                    selected_icon=ft.Icons.CATEGORY,
-                    label="Budgets"
-                ),
-                ft.NavigationRailDestination(
-                    icon=ft.Icons.LEADERBOARD_OUTLINED,
-                    selected_icon=ft.Icons.LEADERBOARD,
-                    label="Leaderboard"
-                ),
-            ],
+            destinations=destinations,
             on_change=self.handle_nav_change,
             bgcolor=nav_bg
         )
         
-        # Main content area
-        self.content_area = ft.Container(
-            content=self.build_overview(),
-            expand=True,
-            padding=30
-        )
+        # Main content area (only create if doesn't exist)
+        if not hasattr(self, 'content_area'):
+            self.content_area = ft.Container(
+                content=self.build_overview(),
+                expand=True,
+                padding=30
+            )
         
         # Top app bar with full-width background image
         app_bar = ft.Stack(
@@ -139,13 +187,6 @@ class DashboardPage(ft.Container):
                                 color=ft.Colors.WHITE,  # White text to stand out on image
                             ),
                             ft.Container(expand=True),
-                            ft.IconButton(
-                                icon=ft.Icons.UPLOAD_FILE,
-                                tooltip="Import CSV",
-                                on_click=self.handle_csv_import,
-                                icon_color=ft.Colors.WHITE,
-                                icon_size=20,
-                            ),
                             ft.IconButton(
                                 icon=ft.Icons.NOTIFICATIONS_OUTLINED,
                                 tooltip="Notifications",
@@ -188,7 +229,7 @@ class DashboardPage(ft.Container):
                 app_bar,
                 ft.Row(
                     controls=[
-                        nav_rail,
+                        self.nav_rail,
                         ft.VerticalDivider(width=1),
                         self.content_area
                     ],
@@ -457,14 +498,21 @@ class DashboardPage(ft.Container):
     
     def switch_view(self, index: int):
         """Switch between different views"""
-        views = {
-            0: "overview",
-            1: "randy",
-            2: "budgets",
-            3: "insights"
-        }
+        # Map index to view based on visible pages
+        visible_views = []
+        if self.page.visible_pages.get('overview', True):
+            visible_views.append('overview')
+        if self.page.visible_pages.get('randy', True):
+            visible_views.append('randy')
+        if self.page.visible_pages.get('budgets', True):
+            visible_views.append('budgets')
+        if self.page.visible_pages.get('leaderboard', True):
+            visible_views.append('insights')
         
-        self.current_view = views.get(index, "overview")
+        if index < len(visible_views):
+            self.current_view = visible_views[index]
+        else:
+            self.current_view = "overview"
         
         if self.current_view == "overview":
             self.content_area.content = self.build_overview()
@@ -501,6 +549,7 @@ class DashboardPage(ft.Container):
     
     def show_transactions_page(self, e):
         """Show the full transactions page"""
+        self.current_view = "transactions"
         self.content_area.content = TransactionsPage(self.page, self.auth_service, self)
         self.page.update()
     
@@ -779,21 +828,55 @@ class DashboardPage(ft.Container):
     
     def show_profile_page(self, e):
         """Show the profile page"""
+        self.current_view = "profile"
         self.content_area.content = ProfilePage(self.page, self.auth_service, self)
         self.page.update()
     
     def show_settings_page(self, e):
         """Show the settings page"""
+        self.current_view = "settings"
         self.content_area.content = SettingsPage(self.page, self.auth_service, self)
         self.page.update()
     
-    def refresh_with_theme(self):
-        """Refresh dashboard with current theme"""
-        # Rebuild entire UI with new theme - just rebuild everything
-        old_content = self.content
+    def update_navigation_rail(self):
+        """Update navigation rail based on visibility settings without changing current view"""
+        # Store current view and content
+        current_view = self.current_view
+        current_content = self.content_area.content
+        
+        # Rebuild the UI (this updates the navigation rail)
         self.content = self.build_ui()
         
-        # Restore the current view
+        # Restore the current view content (reuse existing content to preserve state for non-nav pages)
+        if current_view in ["settings", "profile", "transactions"]:
+            # Don't recreate these pages - keep existing instance to preserve state
+            self.content_area.content = current_content
+            # Update page reference in case it was lost
+            if hasattr(current_content, 'page'):
+                current_content.page = self.page
+            if hasattr(current_content, 'dashboard'):
+                current_content.dashboard = self
+        elif current_view == "overview":
+            self.content_area.content = self.build_overview()
+        elif current_view == "randy":
+            self.content_area.content = RandyPage(self.page, self.auth_service)
+        elif current_view == "budgets":
+            self.content_area.content = BudgetsPage(self.page, self.auth_service)
+        elif current_view == "insights":
+            self.content_area.content = InsightsPage(self.page, self.auth_service)
+        
+        self.update()
+        self.page.update()
+    
+    def update_colors(self):
+        """Update dashboard colors without rebuilding - simple color swap"""
+        is_dark = self.page.is_dark_mode if hasattr(self.page, 'is_dark_mode') else False
+        
+        # Update navigation rail background
+        if hasattr(self, 'nav_rail'):
+            self.nav_rail.bgcolor = Theme.DARK_SURFACE if is_dark else ft.Colors.WHITE
+        
+        # Rebuild current view to update its colors
         if self.current_view == "overview":
             self.content_area.content = self.build_overview()
         elif self.current_view == "randy":
@@ -802,9 +885,14 @@ class DashboardPage(ft.Container):
             self.content_area.content = BudgetsPage(self.page, self.auth_service)
         elif self.current_view == "insights":
             self.content_area.content = InsightsPage(self.page, self.auth_service)
+        # Don't rebuild settings/profile/transactions - they handle their own colors
         
         self.update()
-        self.page.update()
+    
+    def refresh_with_theme(self):
+        """Refresh dashboard with current theme - DEPRECATED"""
+        # Use update_colors() instead
+        self.update_colors()
     
     def close_dialog(self):
         """Close the open dialog"""
